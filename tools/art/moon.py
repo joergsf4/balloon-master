@@ -72,6 +72,26 @@ def crater():
     return cv.rows()
 
 
+def crater2():
+    """Großer Krater: breiter Wall links und rechts, dazwischen eine tiefe Schüssel."""
+    cv = Canvas(96, 48)
+    for x in range(96):
+        u = (x - 47.5) / 48.0
+        h = (12 + 32 * u * u) * math.sqrt(max(0.0, 1 - u ** 8))
+        top = 48 - int(h)
+        for y in range(top, 48):
+            if abs(u) < 0.62 and y < top + 5:
+                c = 'k'                                          # Schüssel liegt im Schatten
+            elif u < 0:
+                c = 'w' if y == top else 'e'
+            else:
+                c = 'D'
+            cv.put(x, y, c)
+    for x in range(22, 76, 12):                                  # Brocken am Grund
+        cv.rect(x, 44, x + 4, 46, 'e')
+    return cv.rows()
+
+
 def rocks():
     cv = Canvas(80, 64)
     cv.poly([(2, 64), (10, 34), (28, 20), (44, 30), (50, 64)], 'e')
@@ -175,11 +195,12 @@ def u2():
 SPEC = {
     "id": "moon", "title": "Mond", "bank": 6, "pal": MOON_PAL,
     "bg": moon_bg, "ground": regolith, "far_cloud": far_cloud,
-    "floors": [{"name": "crater", "rows": crater}, {"name": "rocks", "rows": rocks}, {"name": "lander", "rows": lander}],
+    "floors": [{"name": "crater", "rows": crater}, {"name": "rocks", "rows": rocks}, {"name": "lander", "rows": lander},
+               {"name": "crater2", "rows": crater2}],
     "finish": {"name": "base", "rows": base},
-    "ceil1": {"name": "u1", "rows": u1, "top_row": 2, "bolt": (20, 46)},
-    "ceil2": {"name": "u2", "rows": u2, "top_row": 2, "bolt": (24, 54)},
-    "kind_bld": [1, 0, 2, 3, 0, 1, 2, 0], "kind_ceil": [1, 2, 2, 0, 1, 2, 1, 2],
+    "ceil1": {"name": "u1", "rows": u1, "top_row": 2, "bolt": (20, 46), "shot": (28, 46)},
+    "ceil2": {"name": "u2", "rows": u2, "top_row": 2, "bolt": (24, 54), "shot": (32, 54)},
+    "kind_bld": [1, 4, 2, 3, 0, 4, 2, 3], "kind_ceil": [1, 2, 2, 0, 1, 2, 1, 2],
     "sky": "k", "flash": 0x3F,
     "phys": (1, 2, 12, 20), "wind": (6, 8, 10, 12), "level_cols": 200,
     "flyer": None,

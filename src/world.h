@@ -28,6 +28,7 @@ typedef struct {                 // hängendes Hindernis (Gewitterwolke, Stalakt
   unsigned char top_row;         // Tile-Zeile der Oberkante (mindestens 2)
   unsigned char lo;              // niedrigste erlaubte Ballonhöhe (ypx) = größte Unterkante - 3
   unsigned char bolt_x, bolt_y;  // Blitz bzw. Strahl: x-Versatz im Objekt / Bildschirm-y des Anfangs; bolt_y 0 = keiner
+  unsigned char shot_x, shot_y;  // Schussmündung (UFO, Hubschrauber): feuert wie eine Kanone; shot_y 0 = schießt nicht
 } Ceil;
 
 typedef struct {

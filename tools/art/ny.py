@@ -206,14 +206,76 @@ def liberty():
 
 
 def blimp():
+    """Zeppelin: silberne Zigarre mit rotem Streifen, Heckflossen, Gondel mit Fenstern (72x32, links ist die Nase)."""
+    cv = Canvas(72, 32)
+    cx, cy, rx, ry = 34, 11, 32, 10
+    for y in range(cy - ry - 1, cy + ry + 2):
+        for x in range(cx - rx - 1, cx + rx + 2):
+            d = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
+            if d <= 1.0:
+                c = 'e' if y < cy + 2 else ('E' if y < cy + 6 else 'D')
+                if x > cx + 18 and d > 0.5 and c == 'e':
+                    c = 'E'
+                cv.put(x, y, c)
+            elif d <= 1.18:
+                cv.put(x, y, 'k')
+    cv.rect(cx - rx + 3, cy - 1, cx + rx - 4, cy + 2, 'r')            # Streifen
+    cv.poly([(60, 6), (71, 1), (71, 9), (62, 12)], 'r')                # Flossen hinten
+    cv.poly([(60, 16), (71, 13), (71, 22), (62, 19)], 'r')
+    cv.line(59, 5, 70, 0, 'k', 1)
+    cv.rect(24, 24, 44, 29, 'k')                                       # Gondel
+    cv.rect(25, 25, 43, 28, 'D')
+    for x in range(27, 42, 4):
+        cv.rect(x, 25, x + 2, 27, 'y')
+    for x in (27, 41):
+        cv.line(x, 20, x, 24, 'k', 1)
+    return ['.' * 72] + cv.rows()[:31]
+
+
+def heli():
+    """Kampfhubschrauber von vorn-links: Rotor, Kanzel, Heckausleger; die Mündung der Bordkanone ist links unten."""
     cv = Canvas(64, 32)
-    cv.blob([(30, 14, 12), (16, 14, 10), (44, 14, 10)], ('e', 'e', 'E', 'D'), (3, 8, 14))
-    cv.rect(6, 13, 54, 15, 'r')
-    cv.poly([(52, 8), (62, 3), (62, 14), (52, 17)], 'E')
-    cv.rect(24, 24, 38, 28, 'D')
-    for x in (26, 36):
-        cv.line(x, 24, x, 22, 'k', 1)
+    cv.rect(6, 2, 58, 4, 'e')                                          # Rotor
+    cv.rect(30, 4, 34, 8, 'E')
+    cv.disc(32, 15, 9, 'G')                                            # Rumpf
+    cv.rect(24, 12, 40, 21, 'G')
+    cv.disc(24, 15, 5, 'G')
+    cv.poly([(16, 12), (26, 9), (28, 17), (17, 18)], 't')              # Kanzel
+    cv.rect(17, 13, 20, 15, 'w')
+    cv.rect(38, 13, 60, 17, 'G')                                       # Heckausleger
+    cv.poly([(56, 6), (60, 6), (62, 17), (57, 17)], 'G')                # Seitenleitwerk
+    cv.rect(61, 9, 63, 20, 'e')                                        # Heckrotor
+    cv.rect(26, 20, 40, 22, 'g')
+    cv.line(20, 26, 44, 26, 'e', 1)                                    # Kufen
+    cv.line(24, 22, 24, 26, 'e', 1)
+    cv.line(40, 22, 40, 26, 'e', 1)
+    cv.rect(12, 20, 20, 23, 'E')                                       # Bordkanone
+    cv.rect(10, 21, 12, 23, 'k')
     return ['.' * 64] + cv.rows()[:31]
+
+
+def skyline():
+    """Hintergrund-Skyline (256 x 152): dicht an dicht dunkle Hochhäuser mit einzelnen erleuchteten Fenstern, an den 8-px-
+    Kacheln ausgerichtet. Davor stehen die eigentlichen Hindernisse."""
+    rnd = random.Random(17)
+    widths = [16, 24, 16, 32, 16, 24, 24, 16, 32, 24, 16, 16]
+    assert sum(widths) == 256, sum(widths)
+    cv = Canvas(256, 152)
+    for y in range(152):
+        cv.rect(0, y, 256, y + 1, ny_bg(16 + y))
+    x = 0
+    for i, w in enumerate(widths):
+        h = rnd.choice([56, 72, 88, 104, 120])
+        top = 152 - h
+        cv.rect(x, top, x + w, 152, 'k')
+        if i % 3 == 1:                                                  # Antenne bzw. Aufbau
+            cv.rect(x + w // 2 - 1, top - 8, x + w // 2 + 1, top, 'k')
+        for cy in range(top + 8, 152 - 8, 8):
+            for cx in range(x, x + w, 8):
+                if (cx // 8 * 5 + cy // 8 * 3 + i) % 4 == 0:
+                    cv.rect(cx + 3, cy + 2, cx + 5, cy + 5, 'y')
+        x += w
+    return cv.rows()
 
 
 def plane(frame_b):
@@ -249,7 +311,9 @@ SPEC = {
     ],
     "finish": {"name": "liberty", "rows": liberty},
     "ceil1": {"name": "blimp", "rows": blimp, "top_row": 2},
-    "kind_bld": [1, 2, 3, 0, 1, 3, 2, 0], "kind_ceil": [0, 0, 0, 1, 0, 1, 0, 1],
+    "ceil2": {"name": "heli", "rows": heli, "top_row": 2, "shot": (10, 16 + 22)},
+    "band": skyline,
+    "kind_bld": [1, 2, 3, 0, 1, 3, 2, 0], "kind_ceil": [0, 1, 2, 2, 0, 2, 1, 2],
     "setpieces": [(38, 4), (72, 5)],
     "sky": "n", "flash": 0x3F,
     "sprites": _sprites(),

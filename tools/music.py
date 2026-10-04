@@ -112,45 +112,49 @@ for ch in ['C', 'Am', 'F', 'C', 'F', 'G', 'C', 'C', 'G', 'F', 'G']:
     bas += seq([(n, 1) for n in arps[ch]] * 2, U)
 TRACKS[4] = (mel, bas, (4, 9, 7, 11, 5, 2, 3))
 
-# ---- 5: New York. Swing mit Fanfare und Walking Bass (angelehnt an den Stil der großen Show-Nummern)
-Q = 20
+# ---- 5: New York. "The Star-Spangled Banner" (J. S. Smith, 1780er, gemeinfrei), in C-Dur im 3/4-Takt, flott marschmäßig
+Q = 34       # Viertel in Bildern
 
 
-def sw(a, b):
-    return [(a, 13), (b, 7)]
+def bar(items, bass):
+    m = [(R if n == 'R' else hz(n), int(round(l * Q))) for n, l in items]
+    b = [(R if n == 'R' else hz(n), int(round(Q))) for n in bass]
+    assert sum(d for _, d in m) == sum(d for _, d in b) == 3 * Q, items
+    return m, b
 
 
-def seqf(items):
-    out = []
-    for name, fr in items:
-        out.append((R if name == 'R' else hz(name), fr))
-    return out
-
-
-bars = [
-    [('C5', 20), ('E5', 20), ('G5', 20), ('C6', 20)],
-    sw('B5', 'G5') + [('E5', 20), ('D5', 20), ('C5', 20)],
-    sw('A5', 'F5') + [('A5', 20), ('C6', 20), ('A5', 20)],
-    [('G5', 40), ('R', 20)] + sw('G5', 'F5'),
-    sw('E5', 'G5') + [('C6', 20), ('B5', 20), ('G5', 20)],
-    sw('A5', 'C6') + [('E6', 20), ('D6', 20), ('C6', 20)],
-    sw('B5', 'D6') + [('G6', 20), ('F6', 20), ('D6', 20)],
-    [('C6', 60), ('R', 20)],
-    sw('C5', 'E5') + sw('G5', 'E5') + [('C6', 20), ('E5', 20)],
-    sw('G5', 'B5') + [('D6', 20), ('B5', 20), ('G5', 20)],
-    sw('F5', 'A5') + [('C6', 20), ('A5', 20), ('F5', 20)],
-    sw('E5', 'D5') + [('C5', 20), ('G4', 20), ('R', 20)],
+PICK = [('G4', 0.75), ('E4', 0.25)]
+phrase = [
+    ([('C4', 1), ('E4', 1), ('G4', 1)], ['C3', 'G3', 'E3']),
+    ([('C5', 2), ('E5', 0.75), ('D5', 0.25)], ['C3', 'E3', 'G3']),
+    ([('C5', 1), ('E4', 1), ('F#4', 1)], ['D3', 'A3', 'A3']),
 ]
-mel = []
-for b in bars:
-    for name, fr in b:
-        mel.append((R if name == 'R' else hz(name), fr))
-walk = ['C3 E3 G3 E3', 'G3 B3 D4 B3', 'F3 A3 C4 A3', 'C3 G3 E3 G3', 'C3 E3 G3 E3', 'F3 A3 C4 E4', 'G3 B3 D4 F4',
-        'C3 G3 C4 G3', 'C3 E3 G3 E3', 'G3 B3 D4 B3', 'F3 A3 C4 A3', 'G3 B3 D4 G3']
-bas = []
-for w in walk:
-    bas += seq([(n, 1) for n in w.split()], Q)
-TRACKS[5] = (mel, bas, (3, 8, 6, 10, 4, 3, 5))
+mel, bas = [], []
+m0 = [(hz('G4'), 26), (hz('E4'), 8)]
+mel += m0
+bas += [(R, Q)]
+for rep in range(2):
+    for items, bass in phrase:
+        m, b = bar(items, bass)
+        mel += m
+        bas += b
+    last = [('G4', 2)] + PICK if rep == 0 else [('G4', 3)]
+    m, b = bar(last, ['G3', 'D4', 'D4'])
+    mel += m
+    bas += b
+climax = [
+    ([('E5', 1.5), ('E5', 0.5), ('E5', 1)], ['C3', 'G3', 'E3']),
+    ([('G5', 3)], ['C3', 'G3', 'C4']),
+    ([('G5', 1.5), ('F5', 0.5), ('E5', 1)], ['G3', 'D4', 'G3']),
+    ([('D5', 2), ('R', 1)], ['G3', 'D4', 'D4']),
+    ([('E5', 1), ('D5', 1), ('C5', 1)], ['C3', 'E3', 'G3']),
+    ([('C5', 2.5), ('R', 0.5)], ['C3', 'G3', 'C3']),
+]
+for items, bass in climax:
+    m, b = bar(items, bass)
+    mel += m
+    bas += b
+TRACKS[5] = (mel, bas, (3, 7, 6, 10, 4, 3, 5))
 
 
 def carr(name, typ, vals):

@@ -192,3 +192,9 @@ Offen: ein Bot-Test am Rechner, der tausende Seeds auf Lösbarkeit prüft. Lohnt
 
 - Mehrere Orte nur namentlich (z. B. weitere Städte): erst nach London und New York
 - Satellit und Flugzeug zählen als Hindernisse der Welten 3 und 6, kein eigenes Level
+
+
+## Nachtrag: Bedrohungen pro Welt
+- **Höhle:** Lavakrater schießen Lavabomben in Wurfparabeln (Mechanik der Kanonen, Rauch als Warnung).
+- **Mond:** UFOs haben zusätzlich zum Strahl Plasmaschüsse (Funken als Vorwarnung); zweiter, großer Krater.
+- **New York:** dichte Hintergrund-Skyline; Zeppelin und Kampfhubschrauber (schießt) von oben; Musik: US-Hymne (gemeinfrei).

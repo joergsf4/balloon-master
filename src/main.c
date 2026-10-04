@@ -555,9 +555,30 @@ static unsigned char shooter_phase(const Seg *s) {
   return (unsigned char)(frame + (unsigned char)(s->start * 41)) & 127;
 }
 
+// Schuss von (mx, y0) auf die Ballonspalte: Flugzeit T und Zielhöhe ht so wählen, dass die Kugel dort ankommt. Der
+// Spieler sieht die Bahn ab der Mündung (ca. 1 s) und kann über oder unter ihr durchfliegen.
+static void fire_ball(int mx, int y0, unsigned char kind) {
+  unsigned char j, t;
+  int ht, dx;
+  for (j = 0; j < MAX_BALLS; j++) {
+    if (balls[j].on) continue;
+    t = 50 + (rand8() & 15);
+    ht = 64 + (rand8() & 63);
+    dx = (mx - 8) - 124;
+    balls[j].x = (mx - 8) * 64;
+    balls[j].y = y0 * 64;
+    balls[j].vx = (dx * 64) / t;
+    balls[j].vy = -(((y0 - ht) * 64 + (BALL_G * t * t) / 2) / t);
+    balls[j].on = 1;
+    balls[j].kind = kind;
+    snd_sfx(SFX_CANNON);
+    break;
+  }
+}
+
 static void update_cannons(void) {
-  unsigned char i, j, t;
-  int mx, dx, ht, y0;
+  unsigned char i;
+  int mx;
   const Bld *b;
   for (i = 0; i < MAX_BALLS; i++) {                // Wurfparabel: seitlich konstant, senkrecht mit Schwerkraft
     if (!balls[i].on) continue;
@@ -567,27 +588,17 @@ static void update_cannons(void) {
     if (balls[i].x < -8 * 64 || balls[i].y > 190 * 64) balls[i].on = 0;
   }
   for (i = 0; i < RING; i++) {
-    if (!ring[i].w || !ring[i].bld) continue;
-    b = &W->bld[ring[i].bld];
-    if (!b->shot_y) continue;
-    mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + b->shot_x;
-    if (mx < 200 || mx > 248 || shooter_phase(&ring[i]) != 112) continue;
-    for (j = 0; j < MAX_BALLS; j++) {
-      if (balls[j].on) continue;
-      // Flugzeit T und Zielhöhe ht an der Ballonspalte so wählen, dass die Kugel dort ankommt: der Spieler sieht
-      // die Bahn ab der Mündung (ca. 1 s) und kann über oder unter ihr durchfliegen
-      t = 50 + (rand8() & 15);
-      ht = 64 + (rand8() & 63);
-      y0 = b->shot_y - 4;
-      dx = (mx - 8) - 124;
-      balls[j].x = (mx - 8) * 64;
-      balls[j].y = y0 * 64;
-      balls[j].vx = (dx * 64) / t;
-      balls[j].vy = -(((y0 - ht) * 64 + (BALL_G * t * t) / 2) / t);
-      balls[j].on = 1;
-      balls[j].kind = b->shot_kind;
-      snd_sfx(SFX_CANNON);
-      break;
+    if (!ring[i].w) continue;
+    if (ring[i].bld) {
+      b = &W->bld[ring[i].bld];
+      if (b->shot_y) {
+        mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + b->shot_x;
+        if (mx >= 200 && mx <= 248 && shooter_phase(&ring[i]) == 112) fire_ball(mx, b->shot_y - 4, b->shot_kind);
+      }
+    }
+    if (ring[i].ceil && W->ceil[ring[i].ceil].shot_y) {     // UFO, Hubschrauber: schießt von oben schräg nach unten
+      mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + W->ceil[ring[i].ceil].shot_x;
+      if (mx >= 190 && mx <= 248 && cloud_phase(&ring[i]) == 116) fire_ball(mx, W->ceil[ring[i].ceil].shot_y, 1);
     }
   }
 }
@@ -801,6 +812,12 @@ static void draw_cannons(void) {
     mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + b->shot_x;
     if (mx >= 200 && mx <= 248 && shooter_phase(&ring[i]) >= 96 && shooter_phase(&ring[i]) < 120 && (frame & 4))
       spr(mx - 8, b->shot_y - 4, CANNON_PUFF);
+  }
+  for (i = 0; i < RING; i++) {                    // UFO / Hubschrauber: Funken an der Mündung als Vorwarnung
+    if (!ring[i].w || !ring[i].ceil || !W->ceil[ring[i].ceil].shot_y) continue;
+    mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + W->ceil[ring[i].ceil].shot_x;
+    if (mx >= 190 && mx <= 248 && cloud_phase(&ring[i]) >= 100 && cloud_phase(&ring[i]) < 120 && (frame & 4))
+      spr(mx - 8, W->ceil[ring[i].ceil].shot_y - 4, BOLT_A);
   }
 }
 
