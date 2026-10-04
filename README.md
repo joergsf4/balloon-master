@@ -20,6 +20,7 @@ tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpe
 - Knopf 2 (bei dir linke Umschalttaste): Seil mit Haken herablassen, loslassen zieht es wieder ein. Fässer stehen auf dem Gehweg zwischen den Gebäuden. Trifft der Haken eins, hängt es am Seil, und der Tank füllt sich, sobald es oben am Korb ankommt.
 - Der Brenner verbraucht Treibstoff (Anzeige oben links, rot blinkend wenn fast leer). Ohne Treibstoff sinkt der Ballon nur noch.
 - Knopf 1 startet und startet nach dem Absturz neu. Nach dem Ziel (Tower Bridge, Schatzinsel) führt Knopf 1 in die nächste Welt.
+- Auf dem Titelbild wählt man mit links/rechts die Startwelt (zum Testen); Taste 1 startet.
 - Sechs Welten nacheinander: London, Piratenbucht, Gewitter (kurz), Höhle, Mond, New York (mit King Kong und Godzilla). Danach der Schluss und zurück zum Titel.
 - Checkpoints bei einem und zwei Dritteln der Strecke („CHECK POINT“, Tank voll). Nach einem Absturz geht es dort weiter.
 - Berührung von Gebäude, Gewitterwolke oder Boden = Absturz. Die Zahl oben links ist die Strecke.

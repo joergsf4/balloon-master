@@ -69,7 +69,7 @@ def london_world(maps):
     out += "  433,\n"
     out += "  BIRD_UP, BIRD_UP_W, BIRD_UP_H, 3, 6, 13, 12, 8,\n"
     out += "  0,\n"
-    out += "  { 0, 0 }, { 0, 0 },\n"
+    out += "  { 0, 0 }, { 0, 0 }, { 0, 0 },\n"
     out += "  { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }\n};\n"
     return out
 
@@ -244,8 +244,9 @@ def emit_world(spec, bg_base, shared):
     c += f"  {fly},\n"
     c += "  %d,\n" % spec["music"]
     sp = spec.get("setpieces", [])                       # [(Prozent, Index des Bodenhindernisses 1..6)]
-    sp = list(sp) + [(0, 0)] * (2 - len(sp))
-    c += "  { %d, %d }, { %d, %d },\n" % (sp[0][1], sp[1][1], sp[0][0], sp[1][0])
+    sp = [tuple(x) + (0,) * (3 - len(x)) for x in sp]
+    sp = sp + [(0, 0, 0)] * (2 - len(sp))
+    c += "  { %d, %d }, { %d, %d }, { %d, %d },\n" % (sp[0][1], sp[1][1], sp[0][0], sp[1][0], sp[0][2], sp[1][2])
     ans = []
     for n_ in range(3):
         if n_ < len(anims):

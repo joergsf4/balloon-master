@@ -130,7 +130,7 @@ static void spawn_barrel(Seg *s) {
 }
 
 static unsigned char prev_lo, prev_hi;   // Korridor des vorherigen Abschnitts
-static unsigned char sp_done, last_special;   // Höhepunkte (z. B. Monster) bereits erschienen / letzter Abschnitt war einer
+static unsigned char sp_done, last_special, sp_follow;   // Höhepunkte (z. B. Monster) bereits erschienen / letzter Abschnitt war einer
 
 // Bilder, die der Ballon aus der Ruhe braucht, um px Pixel zu sinken (down) oder zu steigen.
 // Gleiche Zahlen wie update_balloon (Physik der aktuellen Welt).
@@ -198,9 +198,14 @@ static void gen_segment(void) {
     if (gen_end < intro_end && W->kind_ceil[k] && !W->kind_ceil[0]) k = 0;   // Anfang: einfacher Abschnitt
     s->bld = W->kind_bld[k];
     s->ceil = W->kind_ceil[k];
-    if (sp_done < 2 && W->sp_bld[sp_done] && gen_end >= (level_len / 100) * W->sp_at[sp_done]) {
+    if (sp_follow) {                                          // Höhepunkt, Teil 2: Wolke gleich hinter dem Monster (versetzt, nicht darüber)
+      sp_follow = 0;
+      s->bld = 0;
+      s->ceil = W->sp_ceil[sp_done - 1];
+    } else if (sp_done < 2 && W->sp_bld[sp_done] && gen_end >= (level_len / 100) * W->sp_at[sp_done]) {
       s->bld = W->sp_bld[sp_done];                            // Höhepunkt (Monster): genau einmal, mit viel Platz davor und danach
       s->ceil = 0;
+      sp_follow = W->sp_ceil[sp_done] != 0;
       sp_done++;
       special = 1;
       gap += 4;
@@ -351,6 +356,7 @@ static void new_game(void) {
   prev_lo = Y_MIN;
   prev_hi = 137;
   sp_done = 0;
+  sp_follow = 0;
   last_special = 0;
   since_barrel = 2;
   barrel_head = 0;
@@ -916,6 +922,22 @@ static void draw_sprites(void) {
 
 // ---------------------------------------------------------------- Start
 static unsigned char title_timer;
+static unsigned char start_sel = START_WORLD;   // auf dem Titelbild mit links/rechts wählbar (zum Testen)
+static unsigned char sel_dirty;
+
+// Zeile 23 des Titelbilds: "< WORLD n >" (Zeichen aus bank2, ROM-Bank 2 muss eingeblendet sein)
+static void draw_world_select(void) {
+  unsigned int row[32];
+  unsigned char i, k = 10;
+  static const unsigned char idx[11] = { 11, 255, 0, 1, 2, 3, 4, 255, 5, 255, 12 };   // < _ W O R L D _ n _ >
+  for (i = 0; i < 32; i++) row[i] = 0;
+  for (i = 0; i < 11; i++) {
+    if (idx[i] == 255) continue;
+    row[k + i] = title_glyph[idx[i]];
+  }
+  row[k + 8] = title_glyph[5 + start_sel];
+  SMS_loadTileMap(0, TITLE_TEXT_ROW + 1, row, 64);
+}
 #ifdef TEST_DIE_AT
 static unsigned char test_died;
 #endif
@@ -955,6 +977,7 @@ static void show_title(void) {
   SMS_loadTiles(title_tiles, 0, TITLE_TILE_BYTES);
   SMS_loadTileMap(0, 0, title_map, 32 * 24 * 2);
   SMS_loadTileMap(0, TITLE_TEXT_ROW, title_text_map, 64);
+  draw_world_select();
   SMS_loadBGPalette(title_pal0);
   SMS_loadSpritePalette(title_pal1);
   SMS_setBackdropColor(0);
@@ -1017,8 +1040,10 @@ void main(void) {
     if (state == ST_TITLE) {
       burner = 0;
       title_timer++;
+      if ((pressed & PORT_A_KEY_RIGHT) && start_sel + 1 < NUM_WORLDS) { start_sel++; sel_dirty = 1; }
+      if ((pressed & PORT_A_KEY_LEFT) && start_sel > 0) { start_sel--; sel_dirty = 1; }
       if (pressed & PORT_A_KEY_1) {
-        select_world(START_WORLD);
+        select_world(start_sel);
         init_game_vram();
         new_game();
         state = ST_PLAY;
@@ -1103,6 +1128,10 @@ void main(void) {
     SMS_waitForVBlank();
     SMS_copySpritestoSAT();
     if (new_col) upload_column(dcol + 32);
+    if (state == ST_TITLE && sel_dirty) {
+      sel_dirty = 0;
+      draw_world_select();
+    }
     if (state == ST_TITLE && !(title_timer & 31))      // "PUSH 1 TO START" blinkt (Zeile 22 abwechselnd Text / leer)
       SMS_loadTileMap(0, TITLE_TEXT_ROW, (title_timer & 32) ? title_map + TITLE_TEXT_ROW * 32 : title_text_map, 64);
     if ((flash != 0) != flash_on) {                     // Himmel aufblitzen lassen

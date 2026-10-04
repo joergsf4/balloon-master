@@ -314,7 +314,7 @@ SPEC = {
                {"name": "ship", "rows": ship, "shot": (9, 168 - 96 + 57)},
                {"name": "fort", "rows": fort, "shot": (3, 168 - 88 + 38)},
                {"name": "kraken", "rows": kraken, "anim": {"rows_b": kraken_b}}],
-    "setpieces": [(45, 4), (78, 4)],
+    "setpieces": [(45, 4, 1), (78, 4, 1)],
     "finish": {"name": "treasure", "rows": treasure},
     "ceil1": {"name": "storm", "rows": _storm, "top_row": 2, "bolt": (20, 44)},
     "kind_bld": [1, 2, 3, 0, 1, 2, 3, 1], "kind_ceil": [0, 0, 0, 1, 1, 0, 0, 0],

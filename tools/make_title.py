@@ -237,25 +237,21 @@ def main():
         words[t] = newid[u] | ((fl & 1) << 9) | ((fl >> 1 & 1) << 10) | (pal_of_final[newid[u]] << 11)
     # untere zwei Zeilen = Tile 0 (Navy), Palette 0 -> Wort 0
 
-    # --- Text in Zeile 22
-    text_words = np.zeros(32, np.uint16)
-    x0 = (32 - len(TEXT)) // 2
-    pal0 = pals[0]
-    for i, ch in enumerate(TEXT):
-        if ch == " ":
-            continue
+    # --- Text in Zeile 22 und Zeichen für die Weltauswahl (Zeile 23)
+    ARROWS = {"<": ["00010", "00100", "01000", "00100", "00010", "00000", "00000"],
+              ">": ["01000", "00100", "00010", "00100", "01000", "00000", "00000"]}
+
+    def glyph_word(ch):
         g = np.zeros((8, 8), np.uint8)
-        g[:] = 0
-        for r, row in enumerate(FONT[ch]):
+        for r, row in enumerate(ARROWS.get(ch) or FONT[ch]):
             for c, v in enumerate(row):
                 if v == "1":
                     g[r + 1, c] = 1                                 # Palettenplatz 1 = Weiß
-        key = (0, g.reshape(64).tobytes())
         tid = None
         for o, v in enumerate(orientations(g)):
-            k = (0, np.ascontiguousarray(v).reshape(64).tobytes())
+            k = np.ascontiguousarray(v).reshape(64).tobytes()
             for fi, (p, a) in enumerate(final):
-                if p == 0 and a.tobytes() == k[1]:
+                if p == 0 and a.tobytes() == k:
                     tid = (fi, o)
                     break
             if tid:
@@ -264,7 +260,16 @@ def main():
             final.append((0, g.reshape(64).astype(np.uint8)))
             tid = (len(final) - 1, 0)
         fi, o = tid
-        text_words[x0 + i] = fi | ((o & 1) << 9) | ((o >> 1 & 1) << 10)
+        return fi | ((o & 1) << 9) | ((o >> 1 & 1) << 10)
+
+    text_words = np.zeros(32, np.uint16)
+    x0 = (32 - len(TEXT)) // 2
+    pal0 = pals[0]
+    for i, ch in enumerate(TEXT):
+        if ch != " ":
+            text_words[x0 + i] = glyph_word(ch)
+    GLYPHS = "WORLD123456<>"
+    glyph_words = [glyph_word(ch) for ch in GLYPHS]
     nt = len(final)
     print(f"Tiles gesamt (VRAM): {nt} von 448, Bank-2-Größe ca. {nt * 32 + 32 * 24 * 2 + 64 + 32} Byte von 16384")
     assert nt <= 440, "zu viele Tiles"
@@ -286,6 +291,7 @@ def main():
         f.write(carr("title_pal1", pals[1], "unsigned char"))
         f.write(carr("title_map", [int(w) for w in words], "unsigned int", 12, "0x%04X"))
         f.write(carr("title_text_map", [int(w) for w in text_words], "unsigned int", 12, "0x%04X"))
+        f.write(carr("title_glyph", glyph_words, "unsigned int", 13, "0x%04X"))
         f.write(carr("title_tiles", list(tile_bytes), "unsigned char"))
     with open(OUT_H, "w") as f:
         f.write("// GENERIERT von tools/make_title.py - nicht von Hand ändern.\n#ifndef BANK2_H\n#define BANK2_H\n\n"
@@ -295,6 +301,7 @@ def main():
                 "extern const unsigned char title_pal1[16];    // Sprite-Palette (Tiles wählen sie per Attribut)\n"
                 "extern const unsigned int title_map[32 * 24];\n"
                 "extern const unsigned int title_text_map[32]; // Zeile 22 mit Text; ohne Text: Zeile 22 aus title_map\n"
+                f"extern const unsigned int title_glyph[{len(GLYPHS)}];  // Zeichen \"{GLYPHS}\" (Tilemap-Wörter) für die Weltauswahl\n"
                 f"extern const unsigned char title_tiles[{nt * 32}];\n\n#endif\n")
 
     # --- Vorschau

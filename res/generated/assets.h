@@ -803,6 +803,6 @@ static const World world_london = {
   433,
   BIRD_UP, BIRD_UP_W, BIRD_UP_H, 3, 6, 13, 12, 8,
   0,
-  { 0, 0 }, { 0, 0 },
+  { 0, 0 }, { 0, 0 }, { 0, 0 },
   { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }
 };

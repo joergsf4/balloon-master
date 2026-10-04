@@ -55,6 +55,7 @@ typedef struct {
   unsigned char music;           // Musikstück (siehe sound.c)
   unsigned char sp_bld[2];       // Höhepunkte: Bodenhindernis (z. B. ein Monster), das genau einmal erscheint ...
   unsigned char sp_at[2];        // ... bei so viel Prozent des Levels
+  unsigned char sp_ceil[2];      // dazu hängendes Hindernis (0 = keins)
   Anim anim[3];
 } World;
 
