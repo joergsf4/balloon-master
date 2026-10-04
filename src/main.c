@@ -594,10 +594,16 @@ static void update_cannons(void) {
 
 static unsigned char passed_finish(void) {
   unsigned char i;
-  for (i = 0; i < RING; i++)
-    if (ring[i].w && ring[i].bld == B_FINISH &&
-        (int)(ring[i].start - dcol) * 8 - (sub >> 4) + 128 < BALLOON_X)   // ganze Brücke ist durchflogen
-      return 1;
+  int l;
+  for (i = 0; i < RING; i++) {
+    if (!ring[i].w || ring[i].bld != B_FINISH) continue;
+    l = (int)(ring[i].start - dcol) * 8 - (sub >> 4);
+    if (W->special_finish) {
+      if (l + 128 < BALLOON_X) return 1;                      // Tower Bridge: ganz durchflogen
+    } else if (l < BALLOON_X + 40 || l + ring[i].w * 8 <= 252) {
+      return 1;                                               // sonst: Ziel ist erreicht, sobald das Objekt im Bild steht (man kommt nicht hin)
+    }
+  }
   return 0;
 }
 
@@ -697,6 +703,7 @@ static unsigned char crashed(void) {
     left = (int)(s->start - dcol) * 8 - (sub >> 4);
     right = left + s->w * 8;
     if (left >= BALLOON_X + 24 || right <= BALLOON_X) continue;
+    if (s->bld == B_FINISH && !W->special_finish) continue;     // Regenbogen, Höhlenausgang ...: nur Kulisse, keine Kollision
     if (s->bld == B_FINISH && W->special_finish) {             // London: Tower Bridge mit spitzen Türmen und Laufsteg
       if (tower_hit(left) || tower_hit(left + 96)) return 1;
       if (balloon_hits(left + 32, 96, left + 96, 400)) return 1;
@@ -1095,7 +1102,7 @@ void main(void) {
       }
     } else if (state == ST_WIN) {
       if (win_timer < 255) win_timer++;
-      update_scroll_and_wind();
+      if (W->special_finish) update_scroll_and_wind();      // ohne Brücke bleibt die Landschaft stehen (Ziel nur sichtbar)
       update_sparks();
       if ((y32 >> 5) < 70) y32 += 16;                 // Ballon sanft auf Höhe 70 schweben lassen
       else if ((y32 >> 5) > 70) y32 -= 16;
