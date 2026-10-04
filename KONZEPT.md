@@ -197,4 +197,4 @@ Offen: ein Bot-Test am Rechner, der tausende Seeds auf Lösbarkeit prüft. Lohnt
 ## Nachtrag: Bedrohungen pro Welt
 - **Höhle:** Lavakrater schießen Lavabomben in Wurfparabeln (Mechanik der Kanonen, Rauch als Warnung).
 - **Mond:** UFOs haben zusätzlich zum Strahl Plasmaschüsse (Funken als Vorwarnung); zweiter, großer Krater.
-- **New York:** dichte Hintergrund-Skyline; Zeppelin und Kampfhubschrauber (schießt) von oben; Musik: US-Hymne (gemeinfrei).
+- **New York:** dichte Hintergrund-Skyline; Zeppelin und Ufos (Außerirdische greifen an, schießen) von oben; Musik: US-Hymne (gemeinfrei).

@@ -1,4 +1,4 @@
-"""Welt 6 (Finale): New York im Abendrot, die Stadt brennt. Wolkenkratzer, Zeppelin, Flugzeuge; King Kong und Godzilla
+"""Welt 6 (Finale): New York im Abendrot, die Stadt brennt. Wolkenkratzer, Zeppelin, Ufos, Flugzeuge; King Kong und Godzilla
 erscheinen genau einmal als Höhepunkte und werfen Felsen bzw. spucken Feuer. Ziel ist die Freiheitsstatue."""
 import math
 import random
@@ -232,50 +232,30 @@ def blimp():
     return ['.' * 72] + cv.rows()[:31]
 
 
-def heli():
-    """Kampfhubschrauber von vorn-links: Rotor, Kanzel, Heckausleger; die Mündung der Bordkanone ist links unten."""
-    cv = Canvas(64, 32)
-    cv.rect(6, 2, 58, 4, 'e')                                          # Rotor
-    cv.rect(30, 4, 34, 8, 'E')
-    cv.disc(32, 15, 9, 'G')                                            # Rumpf
-    cv.rect(24, 12, 40, 21, 'G')
-    cv.disc(24, 15, 5, 'G')
-    cv.poly([(16, 12), (26, 9), (28, 17), (17, 18)], 't')              # Kanzel
-    cv.rect(17, 13, 20, 15, 'w')
-    cv.rect(38, 13, 60, 17, 'G')                                       # Heckausleger
-    cv.poly([(56, 6), (60, 6), (62, 17), (57, 17)], 'G')                # Seitenleitwerk
-    cv.rect(61, 9, 63, 20, 'e')                                        # Heckrotor
-    cv.rect(26, 20, 40, 22, 'g')
-    cv.line(20, 26, 44, 26, 'e', 1)                                    # Kufen
-    cv.line(24, 22, 24, 26, 'e', 1)
-    cv.line(40, 22, 40, 26, 'e', 1)
-    cv.rect(12, 20, 20, 23, 'E')                                       # Bordkanone
-    cv.rect(10, 21, 12, 23, 'k')
-    return ['.' * 64] + cv.rows()[:31]
-
-
 def skyline():
-    """Hintergrund-Skyline (256 x 152): dicht an dicht dunkle Hochhäuser mit einzelnen erleuchteten Fenstern, an den 8-px-
-    Kacheln ausgerichtet. Davor stehen die eigentlichen Hindernisse."""
-    rnd = random.Random(17)
-    widths = [16, 24, 16, 32, 16, 24, 24, 16, 32, 24, 16, 16]
-    assert sum(widths) == 256, sum(widths)
-    cv = Canvas(256, 152)
+    """Hintergrund-Skyline (256 x 152): dicht an dicht dunkle Hochhäuser mit einzelnen erleuchteten Fenstern. Das Muster
+    wiederholt sich alle 64 Pixel; die Hindernisse beginnen auf Vielfachen von 8 Spalten (align) und werden mit demselben
+    Muster hinterlegt, so gibt es keine Kästen um die Hindernisse."""
+    P = 64
+    cv = Canvas(P, 152)
     for y in range(152):
-        cv.rect(0, y, 256, y + 1, ny_bg(16 + y))
+        cv.rect(0, y, P, y + 1, ny_bg(16 + y))
     x = 0
-    for i, w in enumerate(widths):
-        h = rnd.choice([56, 72, 88, 104, 120])
+    for i, (w, h) in enumerate(((16, 96), (8, 56), (24, 120), (16, 72))):
         top = 152 - h
         cv.rect(x, top, x + w, 152, 'k')
-        if i % 3 == 1:                                                  # Antenne bzw. Aufbau
-            cv.rect(x + w // 2 - 1, top - 8, x + w // 2 + 1, top, 'k')
         for cy in range(top + 8, 152 - 8, 8):
             for cx in range(x, x + w, 8):
-                if (cx // 8 * 5 + cy // 8 * 3 + i) % 4 == 0:
+                if (cx // 8 * 5 + cy // 8 * 3 + i) % 3 == 0:
                     cv.rect(cx + 3, cy + 2, cx + 5, cy + 5, 'y')
         x += w
-    return cv.rows()
+    return [r * (256 // P) for r in cv.rows()]
+
+
+def ufo_ny():
+    """Ufo wie auf dem Mond (Außerirdische greifen New York an), Kuppel in Türkis."""
+    import moon
+    return [r.replace('a', 't') for r in moon.u1()]
 
 
 def plane(frame_b):
@@ -311,8 +291,8 @@ SPEC = {
     ],
     "finish": {"name": "liberty", "rows": liberty},
     "ceil1": {"name": "blimp", "rows": blimp, "top_row": 2},
-    "ceil2": {"name": "heli", "rows": heli, "top_row": 2, "shot": (10, 16 + 22)},
-    "band": skyline,
+    "ceil2": {"name": "ufo", "rows": ufo_ny, "top_row": 2, "bolt": (20, 46), "shot": (28, 46)},
+    "band": skyline, "align": 8,
     "kind_bld": [1, 2, 3, 0, 1, 3, 2, 0], "kind_ceil": [0, 1, 2, 2, 0, 2, 1, 2],
     "setpieces": [(38, 4), (72, 5)],
     "sky": "n", "flash": 0x3F,

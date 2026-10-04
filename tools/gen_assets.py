@@ -70,7 +70,7 @@ def london_world(maps):
     out += "  BIRD_UP, BIRD_UP_W, BIRD_UP_H, 3, 6, 13, 12, 8,\n"
     out += "  0,\n"
     out += "  { 0, 0 }, { 0, 0 }, { 0, 0 },\n"
-    out += "  { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } }\n};\n"
+    out += "  { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },\n  0\n};\n"
     return out
 
 
@@ -122,7 +122,12 @@ def emit_world(spec, bg_base, shared):
     ground = ts.add("ground", spec["ground"]())[0]
     far = ts.add("far", [r.replace('.', pal[0]) for r in spec["far_cloud"]()])[0]
 
+    bandrows = spec["band"]() if spec.get("align") else None      # Hintergrund hat feste Muster: durchsichtige Pixel bekommen genau dieses Muster
+
     def bake(rows, top):
+        if bandrows:
+            return [''.join((bandrows[top + y - 16][x] if 16 <= top + y < 168 else bg(top + y)) if c == '.' else c
+                            for x, c in enumerate(r)) for y, r in enumerate(rows)]
         return [''.join(bg(top + y) if c == '.' else c for c in r) for y, r in enumerate(rows)]
 
     floors = {}                                              # Bodenhindernisse und Ziel
@@ -255,7 +260,7 @@ def emit_world(spec, bg_base, shared):
             ans.append("{ %d, %d, %s_anim%d_b }" % (cnt_, first_, ident, n_))
         else:
             ans.append("{ 0, 0, 0 }")
-    c += "  { %s }\n};\n" % ", ".join(ans)
+    c += "  { %s },\n  %d\n};\n" % (", ".join(ans), spec.get("align", 0))
     open(os.path.join(ROOT, "src", f"bank{spec['bank']}.c"), "w").write(c)
     open(os.path.join(ROOT, "src", f"bank{spec['bank']}.h"), "w").write(
         f"// GENERIERT von tools/gen_assets.py - nicht von Hand ändern.\n#ifndef BANK{spec['bank']}_H\n#define BANK{spec['bank']}_H\n\n"

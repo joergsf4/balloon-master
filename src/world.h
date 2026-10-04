@@ -58,6 +58,7 @@ typedef struct {
   unsigned char sp_at[2];        // ... bei so viel Prozent des Levels
   unsigned char sp_ceil[2];      // dazu hängendes Hindernis (0 = keins)
   Anim anim[3];
+  unsigned char align;           // Hindernisse beginnen auf einem Vielfachen dieser Spaltenzahl (Hintergrund wiederholt sich so oft), 0 = egal
 } World;
 
 #endif

@@ -231,6 +231,7 @@ static void gen_segment(void) {
   prev_lo = lo;
   prev_hi = hi;
   s->start = gen_end + gap;
+  if (W->align) s->start = (s->start + W->align - 1) & (unsigned int)(~(unsigned int)(W->align - 1));   // passend zum Hintergrundmuster
   w = s->bld ? W->bld[s->bld].w : 0;
   if (s->ceil && W->ceil[s->ceil].w > w) w = W->ceil[s->ceil].w;
   s->w = w;
