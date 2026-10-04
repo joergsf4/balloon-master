@@ -235,7 +235,7 @@ def _tentacle(cv, pts, w0, w1):
 
 def _kraken(strike):
     cv = Canvas(64, 80)
-    cv.blob([(40, 54, 14), (30, 58, 10), (48, 58, 10)], ('r', 'r', 'b', 'B'), (4, 10, 17))
+    cv.blob([(40, 54, 14), (30, 58, 10), (48, 58, 10)], ('r', 'r', 'r', 'r'), (4, 10, 17))
     for y in range(70, 80):
         for x in range(64):
             cv.put(x, y, '.')

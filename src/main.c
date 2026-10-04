@@ -43,6 +43,7 @@ static const World *W = &world_london;   // aktuelle Welt: Hindernisse, Hintergr
 #define START_WORLD 0                    // zum Testen: START_WORLD=1 ./build.sh beginnt in der Piratenbucht
 #endif
 static unsigned char world_idx;
+static unsigned char anim_pos[3];       // bereits geladene Kacheln des gerade umgeschalteten Blocks (255 = fertig)
 static unsigned char anim_state[3];     // welches der zwei Bilder gerade im VRAM liegt (0 = A)
 static unsigned char cp_idx, cp_msg;     // erreichte Checkpoints (0..2) / Anzeigedauer der Meldung
 static unsigned int cp_trigger[2];       // Spalten, ab denen ein Checkpoint gilt: 1/3 und 2/3 der Strecke
@@ -938,7 +939,7 @@ static void init_game_vram(void) {
     SMS_setTileatXY(x, 22, W->ground[1][x & 3]);
     SMS_setTileatXY(x, 23, W->ground[2][x & 3]);
   }
-  for (x = 0; x < 3; x++) anim_state[x] = 0;
+  for (x = 0; x < 3; x++) { anim_state[x] = 0; anim_pos[x] = 255; }
   for (x = 2; x < 32; x += 10)                     // ferne Wolken im langsamen Band (Tile-Zeilen 0..1)
     bg_obj(x, 0, W->far_cloud, CLOUD_W, CLOUD_H);
 }
@@ -1100,6 +1101,7 @@ void main(void) {
     draw_sprites();
     frame++;
     SMS_waitForVBlank();
+    SMS_copySpritestoSAT();
     if (new_col) upload_column(dcol + 32);
     if (state == ST_TITLE && !(title_timer & 31))      // "PUSH 1 TO START" blinkt (Zeile 22 abwechselnd Text / leer)
       SMS_loadTileMap(0, TITLE_TEXT_ROW, (title_timer & 32) ? title_map + TITLE_TEXT_ROW * 32 : title_text_map, 64);
@@ -1110,14 +1112,21 @@ void main(void) {
     }
     if (state == ST_PLAY || state == ST_WIN) {           // Animationen: Kachelblöcke zwischen Bild A und B umschalten
       for (i = 0; i < 3; i++) {
-        if (W->anim[i].count && (((unsigned char)frame + i * 5) & 31) == 0) {
+        if (!W->anim[i].count) continue;
+        if (anim_pos[i] == 255 && (((unsigned char)frame + i * 5) & 31) == 0) {
           anim_state[i] ^= 1;
-          SMS_loadTiles(anim_state[i] ? W->anim[i].frame_b : W->bg_tiles + (W->anim[i].tile - BG_TILE_BASE) * 32,
-                        W->anim[i].tile, W->anim[i].count * 32);
+          anim_pos[i] = 0;
+        }
+        if (anim_pos[i] != 255) {                      // höchstens 6 Kacheln je Bild, sonst reicht der Vertikalrücklauf nicht
+          unsigned char n = W->anim[i].count - anim_pos[i];
+          if (n > 6) n = 6;
+          SMS_loadTiles((anim_state[i] ? W->anim[i].frame_b : W->bg_tiles + (W->anim[i].tile - BG_TILE_BASE) * 32) + anim_pos[i] * 32,
+                        W->anim[i].tile + anim_pos[i], n * 32);
+          anim_pos[i] += n;
+          if (anim_pos[i] >= W->anim[i].count) anim_pos[i] = 255;
         }
       }
     }
-    SMS_copySpritestoSAT();
     snd_burner(burner && state == ST_PLAY);
     snd_update();
   }
