@@ -55,6 +55,22 @@ def far_cloud():
     return cv.rows()
 
 
+def _edge(rows):
+    """Obere, linke und rechte Randpixel schwarz umranden, damit der Fels sich vom Boden dahinter abhebt."""
+    h, w = len(rows), len(rows[0])
+    out = [list(r) for r in rows]
+    for y in range(h):
+        for x in range(w):
+            if rows[y][x] == '.':
+                continue
+            for dx, dy in ((-1, 0), (1, 0), (0, -1)):
+                nx, ny = x + dx, y + dy
+                if nx < 0 or nx >= w or ny < 0 or rows[ny][nx] == '.':
+                    out[y][x] = 'k'
+                    break
+    return [''.join(r) for r in out]
+
+
 def crater():
     cv = Canvas(72, 32)
     for x in range(72):
@@ -69,7 +85,7 @@ def crater():
             cv.put(x, y, 'E' if x < 36 else 'D')
     for x in range(72):
         cv.put(x, 31, 'E')
-    return cv.rows()
+    return _edge(cv.rows())
 
 
 def crater2():
@@ -81,15 +97,15 @@ def crater2():
         top = 48 - int(h)
         for y in range(top, 48):
             if abs(u) < 0.62 and y < top + 5:
-                c = 'k'                                          # Schüssel liegt im Schatten
+                c = 'D'                                          # Schüssel liegt im Schatten
             elif u < 0:
                 c = 'w' if y == top else 'e'
             else:
-                c = 'D'
+                c = 'E'
             cv.put(x, y, c)
     for x in range(22, 76, 12):                                  # Brocken am Grund
         cv.rect(x, 44, x + 4, 46, 'e')
-    return cv.rows()
+    return _edge(cv.rows())
 
 
 def rocks():

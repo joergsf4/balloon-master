@@ -24,13 +24,13 @@
 #define RING         8
 #define MAX_BIRDS    2
 #define MAX_BARRELS  4
-#define MAX_BALLS    2
+#define MAX_BALLS    3
 #define BALL_G       3        // Schwerkraft der Kanonenkugeln: 3/64 Pixel pro Bild^2
 #define MAX_SPARKS   12
 #define LEVEL_SEED   0x1D2Bu  // fester Startwert: jede Welt ist bei jedem Versuch derselbe Level
 // Länge des Levels steht in der Welt (W->level_cols); zum Testen: LEVEL_COLS=150 ./build.sh überschreibt sie.
-#define FUEL_MAX     1200     // Brennerbilder bei vollem Tank (ca. 20 s Dauerbrennen)
-#define FUEL_BARREL  400
+#define FUEL_MAX     600      // Brennerbilder bei vollem Tank (ca. 10 s Dauerbrennen; Level sind kurz)
+#define FUEL_BARREL  200
 #define ROPE_MAX     72
 
 enum { ST_TITLE, ST_PLAY, ST_DEAD, ST_WIN };
@@ -238,7 +238,7 @@ static void gen_segment(void) {
     gen_end = 0xFFF0;                                         // danach entsteht nichts mehr
   } else {
     ++since_barrel;
-    if (since_barrel >= 4 || !(rb & 7) || (fuel < 600 && since_barrel >= 2 && !barrel_ahead())) {
+    if (since_barrel >= 4 || !(rb & 7) || (fuel < 300 && since_barrel >= 2 && !barrel_ahead())) {
       since_barrel = 0;                                       // bei knappem Tank kommt sicher bald ein Fass
       spawn_barrel(s);
     }
@@ -436,7 +436,7 @@ static void update_balloon(unsigned int keys) {
     if (fuel) fuel--;
     else burner = 0;                  // Tank leer
   }
-  if (fuel && fuel < 300 && !(frame & 63)) snd_sfx(SFX_LOWFUEL);   // Warnton bei fast leerem Tank
+  if (fuel && fuel < 150 && !(frame & 63)) snd_sfx(SFX_LOWFUEL);   // Warnton bei fast leerem Tank
   if (burner) vy -= W->up_acc;
   else vy += W->down_acc;
   if (vy < -(int)W->max_up) vy = -(int)W->max_up;
@@ -593,7 +593,8 @@ static void update_cannons(void) {
       b = &W->bld[ring[i].bld];
       if (b->shot_y) {
         mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + b->shot_x;
-        if (mx >= 200 && mx <= 248 && shooter_phase(&ring[i]) == 112) fire_ball(mx, b->shot_y - 4, b->shot_kind);
+        if (mx >= 200 && mx <= 248 && (shooter_phase(&ring[i]) == 112 || (b->shot_kind == 3 && shooter_phase(&ring[i]) == 122)))
+          fire_ball(mx, b->shot_y - 4, b->shot_kind);
       }
     }
     if (ring[i].ceil && W->ceil[ring[i].ceil].shot_y) {     // UFO, Hubschrauber: schießt von oben schräg nach unten
@@ -801,7 +802,7 @@ static void draw_cannons(void) {
   const Bld *b;
   for (i = 0; i < MAX_BALLS; i++)
     if (balls[i].on) {
-      if (balls[i].kind == 1) spr(balls[i].x >> 6, balls[i].y >> 6, FIREBALL_A + ((frame >> 2) & 1));
+      if (balls[i].kind == 1 || balls[i].kind == 3) spr(balls[i].x >> 6, balls[i].y >> 6, FIREBALL_A + ((frame >> 2) & 1));
       else if (balls[i].kind == 2) spr(balls[i].x >> 6, balls[i].y >> 6, BOULDER);
       else spr(balls[i].x >> 6, balls[i].y >> 6, CANNONBALL);
     }
@@ -840,9 +841,9 @@ static void draw_rope(unsigned char y) {
 static void draw_fuel(void) {
   unsigned char lvl, i, base;
   int c;
-  lvl = (unsigned char)(fuel / 50);                    // 0..24 Pixel Balkenlänge
+  lvl = (unsigned char)(fuel / 25);                    // 0..24 Pixel Balkenlänge
   base = FUEL_BAR;
-  if (fuel < 300 && (frame & 16)) base = FUEL_BAR_RED; // fast leer: rot blinkend (kein ?: , SDCC lässt es weg)
+  if (fuel < 150 && (frame & 16)) base = FUEL_BAR_RED; // fast leer: rot blinkend (kein ?: , SDCC lässt es weg)
   SMS_addSprite(8, 11, SPR_FONT_START + 5);            // 'F'
   for (i = 0; i < 3; i++) {
     c = (int)lvl - 8 * i;
@@ -1107,7 +1108,7 @@ void main(void) {
         state = ST_WIN;
         win_timer = 0;
         burst_timer = 20;
-        win_bonus = fuel / 10;                        // übriger Treibstoff gibt Bonuspunkte
+        win_bonus = fuel / 5;                        // übriger Treibstoff gibt Bonuspunkte
         bonus += win_bonus;
         if (dcol + bonus > best) best = dcol + bonus;
         rope = 0;

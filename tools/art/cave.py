@@ -111,9 +111,28 @@ def vent():
     return cv.rows()
 
 
-def s2():
+def vent2():
+    """Großer Vulkan: breiter Kegel, glühender See im Krater, mehrere Lavaströme; feuert Doppelsalven."""
     cv = Canvas(64, 56)
-    _spikes_up(cv, [(12, 8, 34), (30, 12, 56), (50, 10, 44)])
+    cv.poly([(0, 56), (64, 56), (46, 22), (18, 22)], 'E')
+    cv.poly([(0, 56), (14, 56), (22, 22), (18, 22)], 'e')
+    for y in range(30, 56, 9):
+        for x in range(10, 54):
+            if cv.g[y][x] == 'E' and (x + y) % 3:
+                cv.put(x, y, 'D')
+    for pts, c in (([(26, 22), (31, 22), (27, 56), (16, 56)], 'r'), ([(34, 22), (39, 22), (52, 56), (43, 56)], 'r'),
+                   ([(30, 22), (34, 22), (36, 56), (30, 56)], 'r')):
+        cv.poly(pts, c)
+    cv.line(28, 24, 21, 54, 'o', 1)
+    cv.line(37, 24, 47, 54, 'o', 1)
+    for x in range(14, 51):
+        for y in range(14, 29):
+            if ((x - 32) / 17.5) ** 2 + ((y - 22) / 6.5) ** 2 <= 1:
+                cv.put(x, y, 'o' if y > 20 else 'y')
+    cv.rect(25, 19, 40, 22, 'w')
+    for x, y in ((14, 12), (50, 10), (22, 6), (42, 4), (32, 1), (8, 16), (56, 15)):
+        cv.put(x, y, 'y')
+        cv.put(x + 1, y + 1, 'o')
     return cv.rows()
 
 
@@ -207,11 +226,12 @@ def _sprites():
 SPEC = {
     "id": "cave", "title": "Höhle", "bank": 5, "pal": CAVE_PAL,
     "bg": cave_bg, "ground": lava, "far_cloud": far_cloud,
-    "floors": [{"name": "vent", "rows": vent, "shot": (24, 168 - 40 + 12), "shot_kind": 1}, {"name": "s2", "rows": s2}, {"name": "s3", "rows": s3}],
+    "floors": [{"name": "vent", "rows": vent, "shot": (24, 168 - 40 + 12), "shot_kind": 3},
+               {"name": "vent2", "rows": vent2, "shot": (32, 168 - 56 + 17), "shot_kind": 3}, {"name": "s3", "rows": s3}],
     "finish": {"name": "exit", "rows": exit_cave},
     "ceil1": {"name": "c1", "rows": c1, "top_row": 2},
     "ceil2": {"name": "c2", "rows": c2, "top_row": 2},
-    "kind_bld": [2, 0, 3, 1, 0, 2, 1, 3], "kind_ceil": [1, 2, 1, 1, 0, 2, 0, 2],
+    "kind_bld": [3, 1, 2, 3, 0, 1, 2, 0], "kind_ceil": [1, 2, 1, 1, 0, 2, 0, 2],
     "sky": "k", "flash": 0x3F,
     "sprites": _sprites(),
     "phys": (1, 3, 24, 32), "wind": (8, 10, 12, 16), "level_cols": 333,
