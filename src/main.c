@@ -1051,7 +1051,9 @@ static void show_title(void) {
   SMS_loadTiles(title_tiles, 0, TITLE_TILE_BYTES);
   SMS_loadTileMap(0, 0, title_map, 32 * 24 * 2);
   SMS_loadTileMap(0, TITLE_TEXT_ROW, title_text_map, 64);
+#ifndef NO_LEVEL_SELECT
   draw_world_select();
+#endif
   SMS_loadBGPalette(title_pal0);
   SMS_loadSpritePalette(title_pal1);
   SMS_setBackdropColor(0);
@@ -1142,8 +1144,10 @@ void main(void) {
         new_game();
         state = ST_PLAY;
       }
+#ifndef NO_LEVEL_SELECT                                // Beta-Version: immer ab Welt 1
       if ((pressed & PORT_A_KEY_RIGHT) && start_sel + 1 < NUM_WORLDS) { start_sel++; sel_dirty = 1; }
       if ((pressed & PORT_A_KEY_LEFT) && start_sel > 0) { start_sel--; sel_dirty = 1; }
+#endif
       if (pressed & PORT_A_KEY_1) {
         select_world(start_sel);
         init_game_vram();

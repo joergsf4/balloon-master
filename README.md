@@ -21,7 +21,7 @@ tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpe
 - Der Brenner verbraucht Treibstoff (Anzeige oben links, rot blinkend wenn fast leer). Ohne Treibstoff sinkt der Ballon nur noch.
 - Knopf 1 startet und startet nach dem Absturz neu. Nach dem Ziel (Tower Bridge, Schatzinsel) führt Knopf 1 in die nächste Welt.
 - Vorführung (Attract-Modus): 10 s ohne Tastendruck im Titel, dann fliegt das Spiel 25 s selbst (unverwundbar, "DEMO" blinkt) – bei jedem Durchlauf in der nächsten Welt –, danach zurück zum Titel. Jede Taste beendet die Vorführung.
-- Auf dem Titelbild wählt man mit links/rechts die Startwelt (zum Testen); Taste 1 startet.
+- Zwei Varianten (`tools/release.sh`): **Balloon Master Beta** ohne Weltauswahl, **Balloon Master Testing** mit Weltauswahl: Im Titel wählt man mit links/rechts die Startwelt, Taste 1 startet.
 - Sechs Welten nacheinander: London, Piratenbucht, Gewitter (kurz), Höhle, Mond, New York (mit King Kong und Godzilla). Danach der Schluss und zurück zum Titel.
 - Checkpoints bei einem und zwei Dritteln der Strecke („CHECK POINT“, kein Auftanken). Nach einem Absturz geht es dort mit vollem Tank weiter.
 - Berührung von Gebäude, Gewitterwolke oder Boden = Absturz. Die Zahl oben links ist die Strecke.
