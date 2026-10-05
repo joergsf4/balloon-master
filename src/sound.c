@@ -122,9 +122,28 @@ static const Step s_kong[] = {                      // Kong: tiefes Brüllen, da
   { 2, 0, 15, 6, 0 }, { 3, 0, 15, 6, 5 }, { 3, 0, 15, 255, 15 }, { 2, 0, 15, 6, 0 }, { 4, 0, 15, 6, 6 },
   { 0, 0, 0, 0, 0 }
 };
-static const Step s_godzilla[] = {                  // Godzilla: Schrei, steigt hoch und fällt wieder ab
-  { 3, P(500), 2, 4, 6 }, { 3, P(700), 2, 4, 5 }, { 3, P(950), 2, 4, 4 }, { 3, P(1300), 2, 4, 4 }, { 4, P(1700), 3, 4, 5 },
-  { 4, P(1300), 3, 4, 6 }, { 4, P(900), 3, 4, 7 }, { 4, P(600), 4, 4, 8 }, { 5, P(400), 5, 4, 10 }, { 6, P(250), 6, 4, 12 },
+static const Step s_godzilla[] = {                  // Godzilla: tiefes, rauhes Brüllen (nach dem Original: Einsatz ~310 Hz, sinkt auf ~216 Hz,
+  // ~7 Hz Pulsieren; Rauschen an die Tonhöhe gekoppelt = Knurren)
+  { 4, P(312), 1, 7, 0 }, { 4, P(312), 4, 5, 3 },
+  { 4, P(306), 1, 7, 0 }, { 4, P(306), 4, 5, 3 },
+  { 4, P(300), 2, 7, 1 }, { 4, P(300), 5, 5, 4 },
+  { 4, P(296), 2, 7, 1 }, { 4, P(296), 5, 5, 4 },
+  { 4, P(290), 2, 7, 1 }, { 4, P(290), 5, 5, 4 },
+  { 4, P(284), 2, 7, 1 }, { 4, P(284), 5, 5, 4 },
+  { 4, P(280), 2, 7, 1 }, { 4, P(280), 5, 5, 4 },
+  { 4, P(284), 2, 7, 1 }, { 4, P(284), 5, 5, 4 },
+  { 4, P(276), 2, 7, 1 }, { 4, P(276), 5, 5, 4 },
+  { 4, P(268), 2, 7, 1 }, { 4, P(268), 5, 5, 4 },
+  { 4, P(258), 2, 7, 1 }, { 4, P(258), 5, 5, 4 },
+  { 4, P(248), 2, 7, 1 }, { 4, P(248), 5, 5, 4 },
+  { 4, P(238), 2, 7, 1 }, { 4, P(238), 5, 5, 4 },
+  { 4, P(230), 2, 7, 1 }, { 4, P(230), 5, 5, 4 },
+  { 4, P(224), 2, 7, 1 }, { 4, P(224), 5, 5, 4 },
+  { 4, P(218), 2, 7, 1 }, { 4, P(218), 5, 5, 4 },
+  { 4, P(216), 3, 7, 2 }, { 4, P(216), 6, 5, 5 },
+  { 4, P(216), 4, 7, 4 }, { 4, P(216), 5, 7, 7 },
+  { 4, P(218), 6, 7, 6 }, { 4, P(218), 9, 5, 9 },
+  { 4, P(216), 9, 7, 9 }, { 4, P(216), 12, 5, 12 },
   { 0, 0, 0, 0, 0 }
 };
 static const Step s_pop[] = { { 2, P(1500), 3, 4, 3 }, { 3, 0, 15, 4, 8 }, { 0, 0, 0, 0, 0 } };
@@ -133,7 +152,7 @@ static const Step s_lowfuel[] = {
 };
 
 static const Step *const sfx_tab[12] = { 0, s_catch, s_refuel, s_crash, s_thunder, s_spark, s_lowfuel, s_pop, s_cannon, s_splash, s_kong, s_godzilla };
-static const unsigned char sfx_prio_tab[12] = { 0, 3, 3, 5, 4, 1, 2, 1, 3, 3, 3, 3 };
+static const unsigned char sfx_prio_tab[12] = { 0, 3, 3, 5, 4, 1, 2, 1, 3, 3, 3, 4 };
 
 static const Step *sfx_next;           // nächster Schritt, 0 = kein Effekt aktiv
 static unsigned char sfx_timer, sfx_prio, sfx_nmode, sfx_nvol;

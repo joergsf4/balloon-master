@@ -646,21 +646,28 @@ static void update_cannons(void) {
 }
 
 // Steht gerade ein Hindernis mit dieser Animation (1-basiert) im Bild?
+static unsigned int anim_seg;           // Anfangsspalte des gerade sichtbaren Hindernisses mit dieser Animation (von anim_visible)
+
 static unsigned char anim_visible(unsigned char id) {
   unsigned char i;
   int left;
   for (i = 0; i < RING; i++) {
     if (!ring[i].w || !ring[i].bld || W->bld[ring[i].bld].anim_id != id) continue;
     left = (int)(ring[i].start - dcol) * 8 - (sub >> 4);
-    if (left < 250 && left + ring[i].w * 8 > 0) return 1;
+    if (left < 250 && left + ring[i].w * 8 > 0) {
+      anim_seg = ring[i].start;
+      return 1;
+    }
   }
   return 0;
 }
 
 // Laut der Monster, wenn sie in die zweite Pose wechseln (Zuschlagen, Brüllen): Krake in Welt 2, Kong und Godzilla in New York
+static unsigned int roar_seg = 0xFFFF;                 // Abschnitt, in dem Godzilla zuletzt gebrüllt hat
+
 static unsigned char monster_sfx(unsigned char i) {
   if (world_idx == 1) return SFX_SPLASH;
-  if (world_idx == 5) return i ? SFX_GODZILLA : SFX_KONG;
+  if (world_idx == 5) return SFX_KONG;                  // (Godzilla siehe Hauptschleife)
   return SFX_NONE;
 }
 
@@ -1124,7 +1131,11 @@ static void show_title(void) {
   title_timer = 0;
   idle_timer = 0;
   state = ST_TITLE;
+#ifdef SFX_DEMO
+  snd_music(0);
+#else
   snd_music(1);
+#endif
   SMS_displayOn();
   irq_on(0);
 }
@@ -1190,6 +1201,10 @@ void main(void) {
     if (state == ST_TITLE) {
       burner = 0;
       title_timer++;
+#ifdef SFX_DEMO                                          // nur zum Testen: ohne Musik, Effekt SFX_DEMO immer wieder
+      if (!title_timer) snd_sfx(SFX_DEMO);
+      idle_timer = 0;
+#endif
       idle_timer++;
       if (pressed) idle_timer = 0;
       if (idle_timer >= IDLE_FRAMES) {               // Vorführung: selbstfliegend, unverwundbar, jedes Mal eine andere Welt
@@ -1336,7 +1351,16 @@ void main(void) {
         if (anim_pos[i] == 255 && (((unsigned char)frame + i * 5) & 31) == 0) {
           anim_state[i] ^= 1;
           anim_pos[i] = 0;
-          if (anim_state[i] && anim_visible(i + 1)) snd_sfx(monster_sfx(i));
+          if (anim_state[i] && anim_visible(i + 1)) {
+            if (world_idx == 5 && i == 1) {                 // Godzilla brüllt nur einmal je Auftritt (das Brüllen dauert fast 3 Sekunden)
+              if (anim_seg != roar_seg) {
+                roar_seg = anim_seg;
+                snd_sfx(SFX_GODZILLA);
+              }
+            } else {
+              snd_sfx(monster_sfx(i));
+            }
+          }
         }
         if (anim_pos[i] != 255) {                      // höchstens 6 Kacheln je Bild, sonst reicht der Vertikalrücklauf nicht
           unsigned char n = W->anim[i].count - anim_pos[i];
