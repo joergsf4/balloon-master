@@ -487,19 +487,26 @@ static void update_rope_and_barrels(unsigned int keys) {
   }
 }
 
-// Liegt in den nächsten ~30 Spalten ein enger Korridor (< 40 px)? Dann keinen Vogel losschicken.
-static unsigned char narrow_ahead(void) {
+// Gemeinsamer Korridor aller Abschnitte, die der Vogel auf seinem Weg zum Ballon überfliegt: *lo = größte Untergrenze,
+// *hi = kleinste Obergrenze (Ballonhöhe in Pixel). Ist hi - lo klein, gibt es keine gerade Strecke durch alle.
+static void bird_window(int *lo, int *hi) {
   unsigned char i;
   int left;
+  *lo = 0;
+  *hi = 400;
   for (i = 0; i < RING; i++) {
     if (!ring[i].w) continue;
     left = (int)(ring[i].start - dcol) * 8 - (sub >> 4);
-    if (left + ring[i].w * 8 > BALLOON_X && left < BALLOON_X + 240 && ring[i].hi - ring[i].lo < 40) return 1;
+    if (left + ring[i].w * 8 > BALLOON_X - 24 && left < BALLOON_X + 200) {
+      if (ring[i].lo > *lo) *lo = ring[i].lo;
+      if (ring[i].hi < *hi) *hi = ring[i].hi;
+    }
   }
-  return 0;
 }
 
 static void update_birds(void) {
+  int clo, chi, y;
+  unsigned char try_;
   unsigned char i, spd = wind_cur + W->flyer_fast, step;   // fliegende Gegner sind etwas schneller als die Landschaft
   if (!W->flyer_w) return;
   step = (bird_sub + spd) >> 4;
@@ -516,18 +523,23 @@ static void update_birds(void) {
   bird_timer = 90 + rand8();
   if (dcol > finale_start) bird_timer = 60 + (rand8() >> 1);
   if (dcol < intro_end) return;
-  if (narrow_ahead()) {                  // später noch einmal versuchen
+  bird_window(&clo, &chi);
+  if (chi - clo < 30) {                  // kein gemeinsamer Durchflug: später noch einmal versuchen
     bird_timer = 30;
     return;
   }
-  for (i = 0; i < MAX_BIRDS; i++) {
-    if (!birds[i].on) {
+  for (i = 0; i < MAX_BIRDS && birds[i].on; i++) ;
+  if (i == MAX_BIRDS) return;
+  for (try_ = 0; try_ < 6; try_++) {       // Höhe so wählen, dass im gemeinsamen Korridor über oder unter dem Vogel Platz bleibt
+    y = 24 + (rand8() >> 1);
+    if (chi - (y + 20) >= 12 || (y - 34) - clo >= 12) {
       birds[i].on = 1;
       birds[i].x = 248;
-      birds[i].y = 24 + (rand8() >> 1);
-      break;
+      birds[i].y = y;
+      return;
     }
   }
+  bird_timer = 30;
 }
 
 // Blitzzyklus einer Gewitterwolke (128 Bilder): 64..87 Funken als Warnung, 88..99 Blitz (gefährlich)
