@@ -1,5 +1,5 @@
 #!/bin/sh
-# Test-ROM "Monstertest": Piratenbucht (Krake) und New York (Kong, Godzilla) kurz hintereinander, unverwundbar, Tank immer voll.
+# Test-ROM "Monstertest": Piratenbucht (Krake) und New York (Riesenaffe, Riesenechse) kurz hintereinander, unverwundbar, Tank immer voll.
 #   Ergebnis: out/Balloon Master Monstertest.sms   (danach wird wieder die normale ROM gebaut)
 cd "$(dirname "$0")/.." || exit 1
 unset LEVEL_COLS AUTOPLAY START_WORLD FORCE_KIND GODMODE TEST_DIE_AT TEST_DIE_REPEAT NO_LEVEL_SELECT MONSTER_TEST SFX_DEMO

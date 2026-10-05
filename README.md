@@ -20,10 +20,11 @@ tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpe
 - Knopf 2 (bei dir linke Umschalttaste): Seil mit Haken herablassen, loslassen zieht es wieder ein; das Seil darf höchstens 3 Sekunden am Stück draußen sein (Ausfahren + Einholen), dann wird es eingeholt und 1 Sekunde gesperrt. Fässer stehen auf dem Gehweg zwischen den Gebäuden. Trifft der Haken eins, hängt es am Seil, und der Tank füllt sich, sobald es oben am Korb ankommt.
 - Der Brenner verbraucht Treibstoff (Anzeige oben links, rot blinkend wenn fast leer). Ohne Treibstoff sinkt der Ballon nur noch.
 - Knopf 1 startet und startet nach dem Absturz neu. Nach dem Ziel (Tower Bridge, Schatzinsel) führt Knopf 1 in die nächste Welt.
+- Beim Einschalten erscheint zuerst das Logo von Retro Computer Dresden (2,5 s, jede Taste überspringt es), dann das Titelbild.
 - Vorführung (Attract-Modus): 10 s ohne Tastendruck im Titel, dann fliegt das Spiel 25 s selbst (unverwundbar, "DEMO" blinkt) – bei jedem Durchlauf in der nächsten Welt –, danach zurück zum Titel. Jede Taste beendet die Vorführung.
-- Monstertest (`tools/monstertest.sh` → `Balloon Master Monstertest.sms`): Piratenbucht (Krake), danach New York (Kong, Godzilla), je kurz, unverwundbar, Tank immer voll. Die Monster haben eigene Laute (Platsch, Brüllen, Schrei).
+- Monstertest (`tools/monstertest.sh` → `Balloon Master Monstertest.sms`): Piratenbucht (Krake), danach New York (Riesenaffe, Riesenechse), je kurz, unverwundbar, Tank immer voll. Die Monster haben eigene Laute (Platsch, Brüllen, Grollen).
 - Zwei Varianten (`tools/release.sh`): **Balloon Master Beta** ohne Weltauswahl, **Balloon Master Testing** mit Weltauswahl: Im Titel wählt man mit links/rechts die Startwelt, Taste 1 startet.
-- Sechs Welten nacheinander: London, Piratenbucht, Gewitter (kurz), Höhle, Mond, New York (mit King Kong und Godzilla). Danach der Schluss und zurück zum Titel.
+- Sechs Welten nacheinander: London, Piratenbucht, Gewitter (kurz), Höhle, Mond, New York (mit Riesenaffe und Riesenechse). Danach der Schluss und zurück zum Titel.
 - Drei Leben (kleine Ballons unter dem Tank). Ein Absturz kostet ein Leben, es geht ab dem letzten Checkpoint mit vollem Tank weiter (Taste 1). Sind alle Leben weg: „GAME OVER“ mit Continue-Countdown von 9 bis 0 (Taste 1 = Continue, unendlich oft: wieder drei Leben, der Level beginnt von vorn; bei 0 geht es zurück zum Titel). Texte stehen auf einer dunklen Fläche. Übrige Leben bleiben beim Wechsel in die nächste Welt erhalten.
 - Checkpoints bei einem und zwei Dritteln der Strecke („CHECK POINT“, kein Auftanken). Nach einem Absturz geht es dort mit vollem Tank weiter.
 - Berührung von Gebäude, Gewitterwolke oder Boden = Absturz. Die Zahl oben links ist die Strecke.
@@ -44,4 +45,10 @@ tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpe
 | `tools/gen_assets.py` | erzeugt `res/generated/assets.h` und `out/art_preview.png` |
 | `tools/shot.sh` | Screenshots für die eigene Prüfung (Mednafen-Aufnahme + ffmpeg) |
 | `tools/art/title_art.py` | zeichnet das Titelbild im Spielstil (`res/gfx/title_art.png`) |
+| `tools/make_logo.py` | Vorspann-Logo „RCD“ (`src/bank9.c`, ROM-Bank 9) |
 | `tools/make_title.py` | Titelbild → `src/bank2.c`, ROM-Bank 2 (für das gezeichnete Bild: `SPREAD=0 COLOR=1 CONTRAST=1 BRIGHT=1 SHARP=1`) |
+
+## Lizenz und Herkunft
+- Code, Grafiken und Musik sind eigene Werke und stehen unter der MIT-Lizenz (siehe `LICENSE`). Die Musik besteht aus eigenen Kompositionen im Stil der jeweiligen Welt sowie gemeinfreien Melodien (London Bridge, Shanty-Anlehnung, Toccata-Motiv von Bach, US-Hymne von J. S. Smith).
+- Gebaut mit SDCC und devkitSMS (SMSlib, PSGlib: gemeinfrei; Startcode `crt0_sms.s`: GPL2 mit Linking-Ausnahme).
+- Die Titelgrafik ist selbst gezeichnet (`tools/art/title_art.py`), ebenso das Vorspann-Logo (`tools/make_logo.py`, Buchstabenblöcke aus dem Projekt master-system-game).

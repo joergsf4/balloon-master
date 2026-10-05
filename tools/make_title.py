@@ -3,7 +3,7 @@
 
     python3 tools/make_title.py            # braucht numpy und Pillow (nur für dieses Werkzeug)
 
-Das Bild (res/gfx/title_artwork.png) wird auf 256x176 verkleinert (22 Tile-Zeilen), darunter bleiben 2 Zeilen
+Das Bild (res/gfx/title_art.png, erzeugt von tools/art/title_art.py) wird auf 256x176 verkleinert (22 Tile-Zeilen), darunter bleiben 2 Zeilen
 für "PUSH 1 TO START". Der VDP kann pro Tile zwischen der BG- und der Sprite-Palette wählen: 2 x 16 Farben aus
 64. Die Paletten und die Tile-Zuordnung werden automatisch optimiert, ähnliche Tiles werden (auch gespiegelt)
 zusammengelegt, bis es höchstens LIMIT_IMG eindeutige Tiles sind (das VRAM fasst 448 Tiles).

@@ -2,6 +2,7 @@
 #include "assets.h"
 #include "sound.h"
 #include "bank2.h"
+#include "bank9.h"
 #include "worlds_gen.h"
 
 // Prototyp: Ballon fliegt durch eine endlos scrollende Stadt.
@@ -45,7 +46,7 @@ static const World *W = &world_london;   // aktuelle Welt: Hindernisse, Hintergr
 static unsigned char world_idx;
 static unsigned char anim_pos[3];       // bereits geladene Kacheln des gerade umgeschalteten Blocks (255 = fertig)
 static unsigned char anim_state[3];     // welches der zwei Bilder gerade im VRAM liegt (0 = A)
-#ifdef MONSTER_TEST                       // Test-ROM mit den drei Monstern: Piratenbucht (Krake), dann New York (Kong, Godzilla)
+#ifdef MONSTER_TEST                       // Test-ROM mit den drei Monstern: Piratenbucht (Krake), dann New York (Riesenaffe, Riesenechse)
 #define NEXT_WORLD(i) ((i) == 1 ? 5 : (i) + 1)
 #else
 #define NEXT_WORLD(i) ((i) + 1)
@@ -662,12 +663,12 @@ static unsigned char anim_visible(unsigned char id) {
   return 0;
 }
 
-// Laut der Monster, wenn sie in die zweite Pose wechseln (Zuschlagen, Brüllen): Krake in Welt 2, Kong und Godzilla in New York
-static unsigned int roar_seg = 0xFFFF;                 // Abschnitt, in dem Godzilla zuletzt gebrüllt hat
+// Laut der Monster, wenn sie in die zweite Pose wechseln (Zuschlagen, Brüllen): Krake in Welt 2, Riesenaffe und Riesenechse in New York
+static unsigned int roar_seg = 0xFFFF;                 // Abschnitt, in dem Riesenechse zuletzt gebrüllt hat
 
 static unsigned char monster_sfx(unsigned char i) {
   if (world_idx == 1) return SFX_SPLASH;
-  if (world_idx == 5) return SFX_KONG;                  // (Godzilla siehe Hauptschleife)
+  if (world_idx == 5) return SFX_KONG;                  // (Riesenechse siehe Hauptschleife)
   return SFX_NONE;
 }
 
@@ -1165,6 +1166,46 @@ static unsigned int autopilot(unsigned int keys) {
   return keys;
 }
 
+// Vorspann: Logo von Retro Computer Dresden (ROM-Bank 9), blendet ein und aus, jede Taste überspringt es
+static void fade_logo(unsigned char lv) {                // lv 0 = schwarz ... 3 = volle Farben
+  unsigned char i, b, r, g, bl;
+  for (i = 0; i < 5; i++) {
+    b = logo_pal[i];
+    r = (unsigned char)(((b & 3) * lv) / 3);
+    g = (unsigned char)((((b >> 2) & 3) * lv) / 3);
+    bl = (unsigned char)((((b >> 4) & 3) * lv) / 3);
+    SMS_setBGPaletteColor(i, r | (g << 2) | (bl << 4));
+  }
+}
+
+static void show_logo(void) {
+  unsigned char f, lv;
+  irq_off();
+  SMS_displayOff();
+  SMS_VRAMmemsetW(0, 0, 16384);
+  SMS_mapROMBank(9);
+  SMS_loadTiles(logo_tiles, 0, LOGO_TILE_BYTES);
+  SMS_loadTileMap(0, 0, logo_map, 32 * 24 * 2);
+  fade_logo(0);
+  SMS_loadSpritePalette(logo_pal);
+  SMS_setBackdropColor(0);
+  SMS_VDPturnOffFeature(VDPFEATURE_LEFTCOLBLANK);
+  next_top = next_main = next_street = 0;
+  sc_top = sc_main = sc_street = 0;
+  SMS_setBGScrollX(0);
+  SMS_displayOn();
+  irq_on(0);
+  for (f = 0; f < 150; f++) {                           // 2,5 Sekunden
+    SMS_waitForVBlank();
+    SMS_getKeysStatus();
+    if (SMS_getKeysPressed()) break;
+    lv = 3;
+    if (f < 12) lv = f / 4;
+    else if (f >= 138) lv = (150 - f) / 4;
+    fade_logo(lv);
+  }
+}
+
 void main(void) {
   unsigned int keys, pressed;
   unsigned char i;
@@ -1174,6 +1215,9 @@ void main(void) {
   SMS_setLineInterruptHandler(line_handler);
   SMS_setFrameInterruptHandler(frame_handler);
   SMS_setLineCounter(LINE_STEP - 1);
+#ifndef AUTOPLAY                                       // Tests überspringen den Vorspann
+  show_logo();
+#endif
   show_title();
 
   for (;;) {
@@ -1352,7 +1396,7 @@ void main(void) {
           anim_state[i] ^= 1;
           anim_pos[i] = 0;
           if (anim_state[i] && anim_visible(i + 1)) {
-            if (world_idx == 5 && i == 1) {                 // Godzilla brüllt nur einmal je Auftritt (das Brüllen dauert fast 3 Sekunden)
+            if (world_idx == 5 && i == 1) {                 // Riesenechse brüllt nur einmal je Auftritt (das Brüllen dauert fast 3 Sekunden)
               if (anim_seg != roar_seg) {
                 roar_seg = anim_seg;
                 snd_sfx(SFX_GODZILLA);

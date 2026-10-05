@@ -1,4 +1,4 @@
-"""Welt 6 (Finale): New York im Abendrot, die Stadt brennt. Wolkenkratzer, Zeppelin, Ufos, Flugzeuge; King Kong und Godzilla
+"""Welt 6 (Finale): New York im Abendrot, die Stadt brennt. Wolkenkratzer, Zeppelin, Ufos, Flugzeuge; Riesenaffe und Riesenechse
 erscheinen genau einmal als Höhepunkte und werfen Felsen bzw. spucken Feuer. Ziel ist die Freiheitsstatue."""
 import math
 import random

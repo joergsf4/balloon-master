@@ -116,13 +116,13 @@ static const Step s_splash[] = {                  // Platsch: Rauschstoß, dann 
   { 2, 0, 15, 4, 0 }, { 2, 0, 15, 4, 2 }, { 3, P(420), 4, 4, 5 }, { 3, P(300), 5, 4, 8 }, { 4, 0, 15, 4, 11 },
   { 0, 0, 0, 0, 0 }
 };
-static const Step s_kong[] = {                      // Kong: tiefes Brüllen, dann zwei Schläge auf die Brust
+static const Step s_kong[] = {                      // Riesenaffe: tiefes Brüllen, dann zwei Schläge auf die Brust
   { 3, P(190), 2, 5, 3 }, { 3, P(160), 2, 5, 2 }, { 4, P(135), 3, 5, 2 }, { 4, P(120), 3, 5, 3 }, { 5, P(110), 4, 5, 4 },
   { 5, P(125), 4, 5, 5 }, { 6, P(110), 5, 5, 7 }, { 3, 0, 15, 255, 15 },
   { 2, 0, 15, 6, 0 }, { 3, 0, 15, 6, 5 }, { 3, 0, 15, 255, 15 }, { 2, 0, 15, 6, 0 }, { 4, 0, 15, 6, 6 },
   { 0, 0, 0, 0, 0 }
 };
-static const Step s_godzilla[] = {                  // Godzilla: tiefes, rauhes Brüllen (nach dem Original: Einsatz ~310 Hz, sinkt auf ~216 Hz,
+static const Step s_godzilla[] = {                  // Riesenechse: tiefes, rauhes Brüllen (nach dem Original: Einsatz ~310 Hz, sinkt auf ~216 Hz,
   // ~7 Hz Pulsieren; Rauschen an die Tonhöhe gekoppelt = Knurren)
   { 4, P(312), 1, 7, 0 }, { 4, P(312), 4, 5, 3 },
   { 4, P(306), 1, 7, 0 }, { 4, P(306), 4, 5, 3 },

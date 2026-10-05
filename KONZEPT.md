@@ -17,7 +17,7 @@ Das Spiel ist von Anfang bis Ende spielbar: Titelbild, sechs Welten, Schlussbild
 | 3 | **Gewitter** (kurz, 650 Spalten) | fertig | dunkler Himmel, Wolkentürme, viele Blitze, starker Wind, Ziel Regenbogen mit Sonne, Musik nach dem Motiv der Toccata |
 | 4 | **Höhle** | fertig | Stalagmiten und Stalaktiten (Flappy-Lücken), Fledermäuse, Lava im Vordergrund, Ziel Höhlenausgang mit Tageslicht, Musik: esoterisch (Glockentöne über einem Bordun) |
 | 5 | **Mond** | fertig | geringe Schwerkraft, langsamer Wind, UFOs mit Zap-Blitz, Mondlandefähre, Ziel Mondbasis mit Flagge, Musik: Raketenstart und schwebende Linien (im Stil von „Rocket Man“, eigene Komposition) |
-| 6 | **New York** (Finale) | fertig | Wolkenkratzer, Zeppelin, Flugzeuge; **King Kong** (wirft Felsbrocken) und **Godzilla** (spuckt Feuerbälle) als Höhepunkte, Ziel Freiheitsstatue, danach „THE END“, Musik: Swing-Fanfare mit Walking Bass (im Stil von „New York, New York“, eigene Komposition) |
+| 6 | **New York** (Finale) | fertig | Wolkenkratzer, Zeppelin, Flugzeuge; **Riesenaffe** (wirft Felsbrocken) und **Riesenechse** (spuckt Feuerbälle) als Höhepunkte, Ziel Freiheitsstatue, danach „THE END“, Musik: Swing-Fanfare mit Walking Bass (im Stil von „New York, New York“, eigene Komposition) |
 
 Checkpoints bei einem und zwei Dritteln der Strecke: der Tank wird dort nicht aufgefüllt, nach einem Absturz geht es dort mit vollem Tank weiter (Ballon steht sicher in einer Lücke, Level bleibt identisch, Punktestand vom Checkpoint).
 
@@ -30,7 +30,7 @@ Die Monster sind **keine Gegner zum Besiegen**, sondern besondere Bodenhindernis
 
 - **Auftritt:** Jedes Monster erscheint genau einmal als Höhepunkt (bei 38 und 72 Prozent der Strecke), mit viel Platz davor und danach. Die Liste steht in der Welt (`setpieces`).
 - **Sicher von oben:** Wie Gebäude haben sie eine Trefferform aus der Grafik. Wer darüber fliegt, ist sicher.
-- **Gefahr durch Würfe:** Kong schleudert Felsbrocken, Godzilla spuckt Feuerbälle. Beides läuft über die Kanonenmechanik: Wurfparabel, Rauchwarnung, ein Bogen, dem man über oder unter durch ausweichen kann.
+- **Gefahr durch Würfe:** Riesenaffe schleudert Felsbrocken, Riesenechse spuckt Feuerbälle. Beides läuft über die Kanonenmechanik: Wurfparabel, Rauchwarnung, ein Bogen, dem man über oder unter durch ausweichen kann.
 - **Lebendig:** Arm bzw. Maul werden in zwei Bildern abwechselnd gezeigt (Kachel-Animation).
 
 ## Steuerung (Vorschlag)
@@ -68,7 +68,7 @@ Reihenfolge ist Vorschlag, steigend von leicht nach schwer:
 | 6 | Weltraum | Satellit, Ufo | geringe Schwerkraft |
 | 7 | Mond | Krater, Ufo | Finale |
 
-**Spezialhindernisse:** King Kong (New York), Godzilla (Meer), Ufo. Es gibt keinen Kampf: Die Monster sind große, auffällige Hindernisse, die man umfliegen muss (z. B. Kong greift mit dem Arm nach dem Ballon, Godzilla steigt aus dem Meer auf, das Ufo schwebt mit Strahl). Pro Welt höchstens eines, als Höhepunkt des Levels.
+**Spezialhindernisse:** Riesenaffe (New York), Riesenechse (Meer), Ufo. Es gibt keinen Kampf: Die Monster sind große, auffällige Hindernisse, die man umfliegen muss (z. B. Riesenaffe greift mit dem Arm nach dem Ballon, Riesenechse steigt aus dem Meer auf, das Ufo schwebt mit Strahl). Pro Welt höchstens eines, als Höhepunkt des Levels.
 
 ## Wind (einfach)
 
@@ -96,7 +96,7 @@ Die Kamera ist **nah am Ballon**, damit die Flappy-Bird-Idee funktioniert: Hinde
 - Hohe, flache Gebäude mit klarem Fensterraster, Fenster teils beleuchtet, teils dunkel.
 - Mehrere Gebäudetypen: graues Hochhaus, gelbes Haus mit Rundbogenfenstern, rotes Backsteinhaus; dazu Big Ben als Wahrzeichen.
 - Dunkle Skyline-Silhouette als Hintergrund hinter den Gebäuden, davor Straße mit Gehweg und Mittelstrich.
-- Monster (King Kong, Godzilla) groß wie ein Gebäude, als Hindernis in der Szene, nicht als Gegner.
+- Monster (Riesenaffe, Riesenechse) groß wie ein Gebäude, als Hindernis in der Szene, nicht als Gegner.
 - Gebäude bekommen keinen Umriss, nur helle und dunkle Töne; Sprites (Ballon, Vögel) haben einen dunklen Umriss, damit sie sich vom Hintergrund lösen.
 
 ## Parallax-Scrolling
@@ -160,7 +160,7 @@ Offen: ein Bot-Test am Rechner, der tausende Seeds auf Lösbarkeit prüft. Lohnt
 - **Sprite-Limit 8 pro Zeile**: Ballon (3×4 Sprites, also 3 pro Zeile) plus Gegner schnell am Limit. Gegner sparsam, Hindernisse als **BG-Tilemap**.
 - **Scrolling**: VDP scrollt horizontal in Hardware. Level als Tilemap-Streifen, Spalte für Spalte nachladen.
 - **Hintergründe wie Häuser, Bäume, Höhle, Skyline** gehören in die Tilemap und sind günstig.
-- **Riesenmonster (Kong, Godzilla, Ufo)**: als BG-Tiles oder wenige große Sprites, nicht als Sprite-Haufen. Da sie keine Kämpfe sind, reicht ein einfaches, geskriptetes Auf und Ab.
+- **Riesenmonster (Riesenaffe, Riesenechse, Ufo)**: als BG-Tiles oder wenige große Sprites, nicht als Sprite-Haufen. Da sie keine Kämpfe sind, reicht ein einfaches, geskriptetes Auf und Ab.
 - **Gewitter/Blitze**: Palettenwechsel für den Blitzeffekt, billig.
 - **Sound**: PSG, 3 Töne + Noise. Brenner = Noise, Kanone/Blitz = Noise-Burst, Musik pro Welt kurz und einfach.
 - **Speicher**: 8 KB RAM, ROM 32 KB reichen für wenige Welten; mehr Welten brauchen Banking.
@@ -173,7 +173,7 @@ Offen: ein Bot-Test am Rechner, der tausende Seeds auf Lösbarkeit prüft. Lohnt
 4. **Sandsack und Seil** (Schatz/Rettung)
 5. **Zweite und dritte Welt** (Meer mit Piraten, New York)
 6. **Wetter, Höhle, Weltraum**
-7. **Spezialhindernisse** (Kong, Godzilla, Ufo)
+7. **Spezialhindernisse** (Riesenaffe, Riesenechse, Ufo)
 8. Musik, Titelbild, Feinschliff
 
 ## Offene Fragen
@@ -183,7 +183,7 @@ Offen: ein Bot-Test am Rechner, der tausende Seeds auf Lösbarkeit prüft. Lohnt
 - Tod bei Berührung oder Lebensenergie (z. B. 3 Herzen)?
 - Ein langes Level pro Welt oder mehrere kurze Abschnitte?
 - Punkte, Highscore, Passwort/Fortschritt (kein Batterie-Save vorausgesetzt)?
-- Ton der Welt: realistisch, oder bewusst albern (Kong, Godzilla, Ufo in einem Spiel)?
+- Ton der Welt: realistisch, oder bewusst albern (Riesenaffe, Riesenechse, Ufo in einem Spiel)?
 - Name und Look des Ballons (Hauptfigur?)
 - Wind: Wie oft wechselt er, und wie stark ist der Unterschied zwischen Flaute und Sturm?
 - Hindernis-Abstände: Wie groß sind die Lücken, und wie stark variiert ihre Höhe?

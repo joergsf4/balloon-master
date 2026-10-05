@@ -81,7 +81,7 @@ def water(cv):
 
 
 def skyline(cv):
-    # Häuser links, Big Ben, Tower Bridge hinten, Godzilla rechts (alles abends, deshalb leicht dunkler abgesetzt)
+    # Häuser links, Big Ben, Tower Bridge hinten, Riesenechse rechts (alles abends, deshalb leicht dunkler abgesetzt)
     for x0, w, h, c in ((0, 14, 22, 'E'), (46, 16, 18, 'E'), (60, 12, 28, 'E')):
         cv.rect(x0, HORIZON - h, x0 + w, HORIZON, c)
         for wy in range(HORIZON - h + 4, HORIZON - 3, 6):

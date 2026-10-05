@@ -1,3 +1,5 @@
 out/
 .DS_Store
 *.mp3
+__pycache__/
+*.pyc
