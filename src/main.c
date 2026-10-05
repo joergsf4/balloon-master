@@ -45,6 +45,11 @@ static const World *W = &world_london;   // aktuelle Welt: Hindernisse, Hintergr
 static unsigned char world_idx;
 static unsigned char anim_pos[3];       // bereits geladene Kacheln des gerade umgeschalteten Blocks (255 = fertig)
 static unsigned char anim_state[3];     // welches der zwei Bilder gerade im VRAM liegt (0 = A)
+#ifdef MONSTER_TEST                       // Test-ROM mit den drei Monstern: Piratenbucht (Krake), dann New York (Kong, Godzilla)
+#define NEXT_WORLD(i) ((i) == 1 ? 5 : (i) + 1)
+#else
+#define NEXT_WORLD(i) ((i) + 1)
+#endif
 #define START_LIVES 3
 static unsigned char lives;               // verbleibende Leben (Anzeige: kleine Ballons unter dem Tank)
 static unsigned char cp_idx, cp_msg;     // erreichte Checkpoints (0..2) / Anzeigedauer der Meldung
@@ -652,6 +657,13 @@ static unsigned char anim_visible(unsigned char id) {
   return 0;
 }
 
+// Laut der Monster, wenn sie in die zweite Pose wechseln (Zuschlagen, Brüllen): Krake in Welt 2, Kong und Godzilla in New York
+static unsigned char monster_sfx(unsigned char i) {
+  if (world_idx == 1) return SFX_SPLASH;
+  if (world_idx == 5) return i ? SFX_GODZILLA : SFX_KONG;
+  return SFX_NONE;
+}
+
 static unsigned char passed_finish(void) {
   unsigned char i;
   int l;
@@ -1202,6 +1214,9 @@ void main(void) {
         state = ST_PLAY;
       }
     } else if (state == ST_PLAY) {
+#ifdef MONSTER_TEST
+      fuel = FUEL_MAX;
+#endif
       update_scroll_and_wind();
       update_balloon(keys);
       update_rope_and_barrels(keys);
@@ -1261,7 +1276,7 @@ void main(void) {
       else if ((y32 >> 5) > 70) y32 -= 16;
       if (win_timer >= 120 && (pressed & PORT_A_KEY_1)) {
         if (world_idx + 1 < NUM_WORLDS) {               // weiter in die nächste Welt
-          select_world(world_idx + 1);
+          select_world(NEXT_WORLD(world_idx));
           init_game_vram();
           new_game();
           state = ST_PLAY;
@@ -1321,7 +1336,7 @@ void main(void) {
         if (anim_pos[i] == 255 && (((unsigned char)frame + i * 5) & 31) == 0) {
           anim_state[i] ^= 1;
           anim_pos[i] = 0;
-          if (anim_state[i] && world_idx == 1 && anim_visible(i + 1)) snd_sfx(SFX_SPLASH);   // Krake schlägt zu
+          if (anim_state[i] && anim_visible(i + 1)) snd_sfx(monster_sfx(i));
         }
         if (anim_pos[i] != 255) {                      // höchstens 6 Kacheln je Bild, sonst reicht der Vertikalrücklauf nicht
           unsigned char n = W->anim[i].count - anim_pos[i];

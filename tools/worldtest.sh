@@ -12,7 +12,7 @@ export START_WORLD="$WORLD" AUTOPLAY=1 GODMODE=1 LEVEL_COLS="${LEVEL_COLS:-260}"
 if [ -z "$REUSE" ]; then                  # REUSE=1: vorhandene out/rom_test.sms noch einmal aufnehmen
   ./build.sh > /dev/null || exit 1
   cp out/rom.sms out/rom_test.sms
-  unset START_WORLD AUTOPLAY GODMODE LEVEL_COLS FORCE_KIND TEST_DIE_AT TEST_DIE_REPEAT
+  unset START_WORLD AUTOPLAY GODMODE LEVEL_COLS FORCE_KIND TEST_DIE_AT TEST_DIE_REPEAT MONSTER_TEST
   ./build.sh > /dev/null
 fi
 mkdir -p out/shots

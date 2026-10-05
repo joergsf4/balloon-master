@@ -16,7 +16,7 @@ docker image inspect "$IMAGE" >/dev/null 2>&1 || docker build -t "$IMAGE" .
 # AUTOPLAY=1 ./build.sh: Version, die den Titel überspringt und selbst fliegt (für tools/shot.sh)
 # NO_LEVEL_SELECT=1 ./build.sh: ohne Weltauswahl im Titel (Beta-Version, siehe tools/release.sh)
 # Wechseln die Schalter, muss main.c neu übersetzt werden (make sieht das sonst nicht)
-FLAGS="LEVEL_COLS=$LEVEL_COLS AUTOPLAY=$AUTOPLAY START_WORLD=$START_WORLD FORCE_KIND=$FORCE_KIND GODMODE=$GODMODE TEST_DIE_AT=$TEST_DIE_AT NO_LEVEL_SELECT=$NO_LEVEL_SELECT TEST_DIE_REPEAT=$TEST_DIE_REPEAT"
+FLAGS="LEVEL_COLS=$LEVEL_COLS AUTOPLAY=$AUTOPLAY START_WORLD=$START_WORLD FORCE_KIND=$FORCE_KIND GODMODE=$GODMODE TEST_DIE_AT=$TEST_DIE_AT NO_LEVEL_SELECT=$NO_LEVEL_SELECT TEST_DIE_REPEAT=$TEST_DIE_REPEAT MONSTER_TEST=$MONSTER_TEST"
 [ "$(cat out/.buildflags 2>/dev/null)" = "$FLAGS" ] || { rm -f out/main.rel; echo "$FLAGS" > out/.buildflags; }
-docker run --rm -e LEVEL_COLS -e AUTOPLAY -e START_WORLD -e FORCE_KIND -e GODMODE -e TEST_DIE_AT -e NO_LEVEL_SELECT -e TEST_DIE_REPEAT -v "$PWD":/work "$IMAGE" sh -c "python3 tools/gen_assets.py && make -C src"
+docker run --rm -e LEVEL_COLS -e AUTOPLAY -e START_WORLD -e FORCE_KIND -e GODMODE -e TEST_DIE_AT -e NO_LEVEL_SELECT -e TEST_DIE_REPEAT -e MONSTER_TEST -v "$PWD":/work "$IMAGE" sh -c "python3 tools/gen_assets.py && make -C src"
 echo "OK: out/rom.sms"

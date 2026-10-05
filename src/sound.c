@@ -116,13 +116,24 @@ static const Step s_splash[] = {                  // Platsch: Rauschstoß, dann 
   { 2, 0, 15, 4, 0 }, { 2, 0, 15, 4, 2 }, { 3, P(420), 4, 4, 5 }, { 3, P(300), 5, 4, 8 }, { 4, 0, 15, 4, 11 },
   { 0, 0, 0, 0, 0 }
 };
+static const Step s_kong[] = {                      // Kong: tiefes Brüllen, dann zwei Schläge auf die Brust
+  { 3, P(190), 2, 5, 3 }, { 3, P(160), 2, 5, 2 }, { 4, P(135), 3, 5, 2 }, { 4, P(120), 3, 5, 3 }, { 5, P(110), 4, 5, 4 },
+  { 5, P(125), 4, 5, 5 }, { 6, P(110), 5, 5, 7 }, { 3, 0, 15, 255, 15 },
+  { 2, 0, 15, 6, 0 }, { 3, 0, 15, 6, 5 }, { 3, 0, 15, 255, 15 }, { 2, 0, 15, 6, 0 }, { 4, 0, 15, 6, 6 },
+  { 0, 0, 0, 0, 0 }
+};
+static const Step s_godzilla[] = {                  // Godzilla: Schrei, steigt hoch und fällt wieder ab
+  { 3, P(500), 2, 4, 6 }, { 3, P(700), 2, 4, 5 }, { 3, P(950), 2, 4, 4 }, { 3, P(1300), 2, 4, 4 }, { 4, P(1700), 3, 4, 5 },
+  { 4, P(1300), 3, 4, 6 }, { 4, P(900), 3, 4, 7 }, { 4, P(600), 4, 4, 8 }, { 5, P(400), 5, 4, 10 }, { 6, P(250), 6, 4, 12 },
+  { 0, 0, 0, 0, 0 }
+};
 static const Step s_pop[] = { { 2, P(1500), 3, 4, 3 }, { 3, 0, 15, 4, 8 }, { 0, 0, 0, 0, 0 } };
 static const Step s_lowfuel[] = {
   { 4, P(880), 4, 255, 15 }, { 4, 0, 15, 255, 15 }, { 4, P(880), 4, 255, 15 }, { 0, 0, 0, 0, 0 }
 };
 
-static const Step *const sfx_tab[10] = { 0, s_catch, s_refuel, s_crash, s_thunder, s_spark, s_lowfuel, s_pop, s_cannon, s_splash };
-static const unsigned char sfx_prio_tab[10] = { 0, 3, 3, 5, 4, 1, 2, 1, 3, 3 };
+static const Step *const sfx_tab[12] = { 0, s_catch, s_refuel, s_crash, s_thunder, s_spark, s_lowfuel, s_pop, s_cannon, s_splash, s_kong, s_godzilla };
+static const unsigned char sfx_prio_tab[12] = { 0, 3, 3, 5, 4, 1, 2, 1, 3, 3, 3, 3 };
 
 static const Step *sfx_next;           // nächster Schritt, 0 = kein Effekt aktiv
 static unsigned char sfx_timer, sfx_prio, sfx_nmode, sfx_nvol;
@@ -234,7 +245,7 @@ static void mchan_update(MChan *m) {
 }
 
 void snd_sfx(unsigned char id) {
-  if (id == SFX_NONE || id > SFX_SPLASH) return;
+  if (id == SFX_NONE || id > SFX_GODZILLA) return;
   if (sfx_next && sfx_prio_tab[id] < sfx_prio) return;
   sfx_next = sfx_tab[id];
   sfx_prio = sfx_prio_tab[id];
