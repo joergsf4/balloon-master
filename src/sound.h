@@ -4,7 +4,7 @@
 // Eigene kleine Klang-Engine für den SN76489 (PSG): Kanal 0 = Melodie, Kanal 1 = Bass,
 // Kanal 2 + Rauschen = Effekte (und das Brenner-Rauschen). Einmal pro Bild snd_update() aufrufen.
 
-enum { SFX_NONE, SFX_CATCH, SFX_REFUEL, SFX_CRASH, SFX_THUNDER, SFX_SPARK, SFX_LOWFUEL, SFX_POP, SFX_CANNON };
+enum { SFX_NONE, SFX_CATCH, SFX_REFUEL, SFX_CRASH, SFX_THUNDER, SFX_SPARK, SFX_LOWFUEL, SFX_POP, SFX_CANNON, SFX_SPLASH };
 
 void snd_init(void);
 void snd_update(void);                 // einmal pro Bild

@@ -450,19 +450,29 @@ static void update_balloon(unsigned int keys) {
   }
 }
 
-#define ROPE_HOLD_MAX 180        // Taste 2 wirkt höchstens 3 Sekunden am Stück, dann fährt das Seil wieder ein
-static unsigned int rope_hold;
+#define ROPE_OUT_MAX  180        // das Seil darf höchstens 3 Sekunden am Stück draußen sein (Ausfahren + Einholen) ...
+#define ROPE_LOCK     60         // ... danach ist es noch 1 Sekunde gesperrt
+static unsigned int rope_out;
+static unsigned char rope_lock;
 
 static void update_rope_and_barrels(unsigned int keys) {
   unsigned char i, step = carrying ? 2 : 3;
   int ypx = y32 >> 5, bx, hy1;
   Barrel *b;
-  if (keys & PORT_A_KEY_2) {
-    if (rope_hold < ROPE_HOLD_MAX) rope_hold++;
-  } else {
-    rope_hold = 0;                                     // erst nach dem Loslassen geht es wieder
+  if (rope_lock) {
+    rope_lock--;
+    keys &= ~PORT_A_KEY_2;
   }
-  if ((keys & PORT_A_KEY_2) && rope_hold < ROPE_HOLD_MAX) {
+  if (rope) {
+    if (rope_out < 65535) rope_out++;
+    if (rope_out >= ROPE_OUT_MAX) {                    // zu lange draußen: einholen erzwingen und kurz sperren
+      rope_lock = ROPE_LOCK;
+      keys &= ~PORT_A_KEY_2;
+    }
+  } else {
+    rope_out = 0;
+  }
+  if (keys & PORT_A_KEY_2) {
     if (rope < ROPE_MAX) rope += 2;
   } else if (rope >= step) {
     rope -= step;
@@ -624,6 +634,18 @@ static void update_cannons(void) {
       if (mx >= 190 && mx <= 248 && cloud_phase(&ring[i]) == 116) fire_ball(mx, W->ceil[ring[i].ceil].shot_y, 1);
     }
   }
+}
+
+// Steht gerade ein Hindernis mit dieser Animation (1-basiert) im Bild?
+static unsigned char anim_visible(unsigned char id) {
+  unsigned char i;
+  int left;
+  for (i = 0; i < RING; i++) {
+    if (!ring[i].w || !ring[i].bld || W->bld[ring[i].bld].anim_id != id) continue;
+    left = (int)(ring[i].start - dcol) * 8 - (sub >> 4);
+    if (left < 250 && left + ring[i].w * 8 > 0) return 1;
+  }
+  return 0;
 }
 
 static unsigned char passed_finish(void) {
@@ -1225,6 +1247,7 @@ void main(void) {
         if (anim_pos[i] == 255 && (((unsigned char)frame + i * 5) & 31) == 0) {
           anim_state[i] ^= 1;
           anim_pos[i] = 0;
+          if (anim_state[i] && world_idx == 1 && anim_visible(i + 1)) snd_sfx(SFX_SPLASH);   // Krake schlägt zu
         }
         if (anim_pos[i] != 255) {                      // höchstens 6 Kacheln je Bild, sonst reicht der Vertikalrücklauf nicht
           unsigned char n = W->anim[i].count - anim_pos[i];

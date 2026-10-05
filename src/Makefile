@@ -6,7 +6,7 @@ OUT           = ../out
 TARGET        = $(OUT)/rom
 
 CC      = sdcc
-CFLAGS  = -mz80 -I. -I$(SMSLIB_INCDIR) -I../res/generated --peep-file $(SMSLIB_INCDIR)/peep-rules.txt
+CFLAGS  = -mz80 --opt-code-size -I. -I$(SMSLIB_INCDIR) -I../res/generated --peep-file $(SMSLIB_INCDIR)/peep-rules.txt
 CFLAGS += $(if $(LEVEL_COLS),-DLEVEL_COLS=$(LEVEL_COLS))
 CFLAGS += $(if $(AUTOPLAY),-DAUTOPLAY)
 CFLAGS += $(if $(START_WORLD),-DSTART_WORLD=$(START_WORLD))

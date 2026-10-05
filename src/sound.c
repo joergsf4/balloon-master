@@ -112,13 +112,17 @@ static const Step s_cannon[] = {
   { 2, P(180), 2, 6, 0 }, { 3, P(130), 3, 6, 1 }, { 4, 0, 15, 6, 3 }, { 6, 0, 15, 6, 7 }, { 8, 0, 15, 6, 11 },
   { 0, 0, 0, 0, 0 }
 };
+static const Step s_splash[] = {                  // Platsch: Rauschstoß, dann blubbernder Ton
+  { 2, 0, 15, 4, 0 }, { 2, 0, 15, 4, 2 }, { 3, P(420), 4, 4, 5 }, { 3, P(300), 5, 4, 8 }, { 4, 0, 15, 4, 11 },
+  { 0, 0, 0, 0, 0 }
+};
 static const Step s_pop[] = { { 2, P(1500), 3, 4, 3 }, { 3, 0, 15, 4, 8 }, { 0, 0, 0, 0, 0 } };
 static const Step s_lowfuel[] = {
   { 4, P(880), 4, 255, 15 }, { 4, 0, 15, 255, 15 }, { 4, P(880), 4, 255, 15 }, { 0, 0, 0, 0, 0 }
 };
 
-static const Step *const sfx_tab[9] = { 0, s_catch, s_refuel, s_crash, s_thunder, s_spark, s_lowfuel, s_pop, s_cannon };
-static const unsigned char sfx_prio_tab[9] = { 0, 3, 3, 5, 4, 1, 2, 1, 3 };
+static const Step *const sfx_tab[10] = { 0, s_catch, s_refuel, s_crash, s_thunder, s_spark, s_lowfuel, s_pop, s_cannon, s_splash };
+static const unsigned char sfx_prio_tab[10] = { 0, 3, 3, 5, 4, 1, 2, 1, 3, 3 };
 
 static const Step *sfx_next;           // nächster Schritt, 0 = kein Effekt aktiv
 static unsigned char sfx_timer, sfx_prio, sfx_nmode, sfx_nvol;
@@ -230,7 +234,7 @@ static void mchan_update(MChan *m) {
 }
 
 void snd_sfx(unsigned char id) {
-  if (id == SFX_NONE || id > SFX_CANNON) return;
+  if (id == SFX_NONE || id > SFX_SPLASH) return;
   if (sfx_next && sfx_prio_tab[id] < sfx_prio) return;
   sfx_next = sfx_tab[id];
   sfx_prio = sfx_prio_tab[id];
