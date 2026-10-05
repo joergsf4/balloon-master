@@ -17,7 +17,7 @@ tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpe
 ## Steuerung (Prototyp)
 
 - Knopf 1 oder Hoch: Brenner, der Ballon steigt. Sonst sinkt er langsam.
-- Knopf 2 (bei dir linke Umschalttaste): Seil mit Haken herablassen, loslassen zieht es wieder ein; länger als 4 Sekunden am Stück geht nicht, dann fährt es von selbst ein (neu drücken zum erneuten Ausfahren). Fässer stehen auf dem Gehweg zwischen den Gebäuden. Trifft der Haken eins, hängt es am Seil, und der Tank füllt sich, sobald es oben am Korb ankommt.
+- Knopf 2 (bei dir linke Umschalttaste): Seil mit Haken herablassen, loslassen zieht es wieder ein; länger als 3 Sekunden am Stück geht nicht, dann fährt es von selbst ein (neu drücken zum erneuten Ausfahren). Fässer stehen auf dem Gehweg zwischen den Gebäuden. Trifft der Haken eins, hängt es am Seil, und der Tank füllt sich, sobald es oben am Korb ankommt.
 - Der Brenner verbraucht Treibstoff (Anzeige oben links, rot blinkend wenn fast leer). Ohne Treibstoff sinkt der Ballon nur noch.
 - Knopf 1 startet und startet nach dem Absturz neu. Nach dem Ziel (Tower Bridge, Schatzinsel) führt Knopf 1 in die nächste Welt.
 - Auf dem Titelbild wählt man mit links/rechts die Startwelt (zum Testen); Taste 1 startet.

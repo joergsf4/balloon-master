@@ -449,7 +449,7 @@ static void update_balloon(unsigned int keys) {
   }
 }
 
-#define ROPE_HOLD_MAX 240        // Taste 2 wirkt höchstens 4 Sekunden am Stück, dann fährt das Seil wieder ein
+#define ROPE_HOLD_MAX 180        // Taste 2 wirkt höchstens 3 Sekunden am Stück, dann fährt das Seil wieder ein
 static unsigned int rope_hold;
 
 static void update_rope_and_barrels(unsigned int keys) {
