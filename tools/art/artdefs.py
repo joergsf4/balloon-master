@@ -221,6 +221,7 @@ SPRITES = [
     ("spark_r_small", _spark(1, 'r', 'y')),
     ("spark_w_big", _spark(3, 'w', 'e')),
     ("spark_w_small", _spark(1, 'w', 'e')),
+    ("life", ["..kkkk..", ".krryrk.", "krryyrrk", "krryyrrk", ".krryrk.", "..k..k..", "..kbbk..", "...kk..."]),
 ]
 
 # ---------------------------------------------------------------- Hintergrund (ohne Umriss)

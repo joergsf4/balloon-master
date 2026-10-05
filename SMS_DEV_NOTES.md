@@ -91,3 +91,7 @@ out/rom.sms              Build-Ergebnis (gitignored)
 
 ## Hintergrundmuster hinter Hindernissen (New York)
 Durchsichtige Pixel der Hindernis-Kacheln werden beim Erzeugen mit dem Hintergrund gefüllt. Ist der Hintergrund nur von y abhängig, geht das immer; hat er ein festes Muster (Skyline), muss das Hindernis genau darauf passen: Das Muster wiederholt sich alle 64 Pixel, die Hindernisse beginnen auf Vielfachen von 8 Spalten (`align` in `World`, `spec["align"]`), und `bake()` im Generator nimmt das Muster aus `spec["band"]`. Sonst entstehen Kästen in Himmelsfarbe um die Hindernisse.
+
+
+## SMS_addSprite in Schleifen
+`SMS_addSprite_f` ist `__naked __preserves_regs(d,e,...)`. In einer Schleife mit Zählvariable zeichnete sie bei `draw_lives` nur das erste Sprite (der Zähler ging verloren, kein Fehler beim Bauen). Gelöst durch drei einzelne Aufrufe; die Schleife in `draw_fuel` ging zufällig gut. Bei neuen Schleifen mit `SMS_addSprite` im Screenshot nachzählen.

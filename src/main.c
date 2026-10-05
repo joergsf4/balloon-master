@@ -45,6 +45,8 @@ static const World *W = &world_london;   // aktuelle Welt: Hindernisse, Hintergr
 static unsigned char world_idx;
 static unsigned char anim_pos[3];       // bereits geladene Kacheln des gerade umgeschalteten Blocks (255 = fertig)
 static unsigned char anim_state[3];     // welches der zwei Bilder gerade im VRAM liegt (0 = A)
+#define START_LIVES 3
+static unsigned char lives;               // verbleibende Leben (Anzeige: kleine Ballons unter dem Tank)
 static unsigned char cp_idx, cp_msg;     // erreichte Checkpoints (0..2) / Anzeigedauer der Meldung
 static unsigned int cp_trigger[2];       // Spalten, ab denen ein Checkpoint gilt: 1/3 und 2/3 der Strecke
 static unsigned int saved_bonus;         // Bonuspunkte beim letzten Checkpoint
@@ -898,6 +900,12 @@ static void draw_fuel(void) {
   SMS_addSprite(40, 11, FUEL_CAP);
 }
 
+static void draw_lives(void) {                         // einzeln statt Schleife: SMS_addSprite_f rettet Schleifenregister nicht zuverlässig
+  if (lives > 0) SMS_addSprite(8, 21, LIFE);
+  if (lives > 1) SMS_addSprite(17, 21, LIFE);
+  if (lives > 2) SMS_addSprite(26, 21, LIFE);
+}
+
 static void draw_birds(void) {
   unsigned char i, dx, dy, tile;
   int x;
@@ -967,11 +975,16 @@ static void draw_sprites(void) {
     }
   }
   if (state == ST_DEAD && dead_timer >= 30) {         // Texte zuerst: Sprites mit niedrigerer Nummer liegen vorn
-    text(112, 44, "GAME");
-    text(112, 56, "OVER");
-    text(112, 72, "BEST");
-    number(108, 82, best);
-    text(104, 98, "PUSH 1");
+    if (lives) {
+      text(104, 98, "PUSH 1");                        // noch Leben übrig: weiter ab Checkpoint
+    } else {
+      text(112, 44, "GAME");
+      text(112, 56, "OVER");
+      text(112, 72, "BEST");
+      number(108, 82, best);
+      text(100, 98, "CONTINUE");
+      text(104, 108, "PUSH 1");
+    }
   }
   if (state != ST_DEAD || dead_timer >= 30 || !(dead_timer & 4))
     spr_obj(BALLOON_X, y, burner ? BALLOON_BURN : BALLOON_IDLE, BALLOON_IDLE_W, BALLOON_IDLE_H);
@@ -987,6 +1000,7 @@ static void draw_sprites(void) {
   if (state == ST_PLAY) draw_rope(y);
   number(8, 2, dcol + bonus);
   draw_fuel();
+  draw_lives();
   if (demo && (frame & 32)) text(112, 40, "DEMO");
 }
 
@@ -1149,6 +1163,7 @@ void main(void) {
       if ((pressed & PORT_A_KEY_LEFT) && start_sel > 0) { start_sel--; sel_dirty = 1; }
 #endif
       if (pressed & PORT_A_KEY_1) {
+        lives = START_LIVES;
         select_world(start_sel);
         init_game_vram();
         new_game();
@@ -1169,7 +1184,11 @@ void main(void) {
       }
       if (cp_msg) cp_msg--;
 #ifdef TEST_DIE_AT                                             // nur zum Testen: einmaliger Absturz in dieser Spalte
+#ifdef TEST_DIE_REPEAT                                         // Absturz in dieser Spalte jedes Mal (Leben/Continue testen)
+      if (dcol == TEST_DIE_AT) {
+#else
       if (dcol == TEST_DIE_AT && !test_died) {
+#endif
         test_died = 1;
 #elif defined(GODMODE)                                         // nur zum Testen: unverwundbar
       if (0) {
@@ -1177,6 +1196,7 @@ void main(void) {
       if (!demo && crashed()) {
 #endif
         if (dcol + bonus > best) best = dcol + bonus;
+        if (lives) lives--;
         rope = 0;
         carrying = 0;
         state = ST_DEAD;
@@ -1217,6 +1237,10 @@ void main(void) {
     } else {
       if (dead_timer < 255) dead_timer++;
       if (dead_timer >= 30 && (pressed & PORT_A_KEY_1)) {
+        if (!lives) {                                   // Continue: wieder drei Leben, Level von vorn
+          lives = START_LIVES;
+          cp_idx = 0;
+        }
         new_game();
         state = ST_PLAY;
       }

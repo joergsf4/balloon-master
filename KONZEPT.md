@@ -198,3 +198,5 @@ Offen: ein Bot-Test am Rechner, der tausende Seeds auf Lösbarkeit prüft. Lohnt
 - **Höhle:** Lavakrater schießen Lavabomben in Wurfparabeln (Mechanik der Kanonen, Rauch als Warnung).
 - **Mond:** UFOs haben zusätzlich zum Strahl Plasmaschüsse (Funken als Vorwarnung); zweiter, großer Krater.
 - **New York:** dichte Hintergrund-Skyline; Zeppelin und Ufos (Außerirdische greifen an, schießen) von oben; Musik: US-Hymne (gemeinfrei).
+
+- **Leben:** drei Leben (kleine Ballons unter dem Tank, `lives` in `main.c`), Absturz = ein Leben weniger und Neustart am Checkpoint; ohne Leben „CONTINUE“ (unendlich): drei Leben, Level von vorn. Test: `TEST_DIE_AT=<Spalte> TEST_DIE_REPEAT=1 AUTOPLAY=1`.
