@@ -911,10 +911,20 @@ static void draw_panel(unsigned char c0, unsigned char r0, unsigned char c1, uns
   pj_rows = r1 - r0 + 1;
 }
 
-static void panel_step(void) {                          // höchstens 4 Zeilen je Bild, sonst reicht die Austastlücke nicht
-  unsigned char n = 4, k;
+static const unsigned int panel_words[16] = {         // eine Zeile Flächenkacheln (Sprite-Palette, Attribut Bit 11)
+  PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800,
+  PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800, PANEL | 0x0800
+};
+
+// Gleich am Anfang der Austastlücke, jede Zeile am Stück, höchstens 3 Zeilen je Bild: Wird zu viel geschrieben, läuft es ins
+// sichtbare Bild, und der VDP verliert dort schnelle Schreibzugriffe (Löcher in der Fläche).
+static void panel_step(void) {
+  unsigned char n = 3, first;
   while (pj_rows && n) {
-    for (k = 0; k < pj_w; k++) SMS_setTileatXY((pj_col + k) & 31, pj_row, PANEL | 0x0800);   // Sprite-Palette (Navy)
+    first = 32 - pj_col;                                // Kartenspalten bis zum rechten Rand der Tilemap
+    if (first > pj_w) first = pj_w;
+    SMS_loadTileMap(pj_col, pj_row, panel_words, first * 2);
+    if (first < pj_w) SMS_loadTileMap(0, pj_row, panel_words, (pj_w - first) * 2);   // Umbruch auf die linke Seite
     pj_row++;
     pj_rows--;
     n--;
@@ -1291,9 +1301,9 @@ void main(void) {
     draw_sprites();
     frame++;
     SMS_waitForVBlank();
+    if (pj_rows) panel_step();                          // zuerst, solange die Austastlücke ganz frei ist
     SMS_copySpritestoSAT();
     if (new_col) upload_column(dcol + 32);
-    if (pj_rows) panel_step();
     if (state == ST_TITLE && sel_dirty) {
       sel_dirty = 0;
       draw_world_select();
