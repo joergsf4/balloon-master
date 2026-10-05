@@ -28,6 +28,8 @@ tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpe
 
 ## Steuerung und Spielablauf
 
+- Im Browser: Pfeiltasten, **X** = Knopf 1 (Brenner, Start) oder Pfeil hoch, **C** = Knopf 2 (Haken). X und C liegen auf der deutschen wie auf der englischen Tastatur nebeneinander in der unteren Reihe.
+
 - Knopf 1 oder Hoch: Brenner, der Ballon steigt. Sonst sinkt er langsam.
 - Knopf 2 (bei dir linke Umschalttaste): Seil mit Haken herablassen, loslassen zieht es wieder ein; das Seil darf höchstens 3 Sekunden am Stück draußen sein (Ausfahren + Einholen), dann wird es eingeholt und 1 Sekunde gesperrt. Fässer stehen auf dem Gehweg zwischen den Gebäuden. Trifft der Haken eins, hängt es am Seil, und der Tank füllt sich, sobald es oben am Korb ankommt.
 - Der Brenner verbraucht Treibstoff (Anzeige oben links, rot blinkend wenn fast leer). Ohne Treibstoff sinkt der Ballon nur noch.

@@ -30,7 +30,7 @@ The monsters are not fought, they are big obstacles to fly around. Their shots f
 | Sega Master System | Browser (default keys) | |
 |---|---|---|
 | Button 1 or Up | `X` or `↑` | Burner — the balloon rises. Also starts the game and continues. |
-| Button 2 | `Z` | Rope with hook — hold to lower it (max. 3 s out, then it is pulled in and locked for 1 s). |
+| Button 2 | `C` | Rope with hook — hold to lower it (max. 3 s out, then it is pulled in and locked for 1 s). |
 | D-pad left/right | `←` `→` | Choose the start world on the title screen (Testing build only). |
 
 ### Rules in short
