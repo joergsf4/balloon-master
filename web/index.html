@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Balloon Master – a hot-air balloon game for the Sega Master System</title>
+<style>
+  :root { --bg: #0b0b24; --fg: #e8e8f0; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); overflow: hidden;
+               font: 13px/1.4 system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; }
+  #game { flex: 1; min-height: 0; }
+  footer { flex: none; padding: 6px 12px; text-align: center; background: #05050f; }
+  kbd { background: #2a2a55; border-radius: 3px; padding: 0 5px; }
+  a { color: #7fb8ff; }
+</style>
+</head>
+<body>
+<div id="game"></div>
+<footer>
+  Balloon Master &ndash; D-pad / Steuerkreuz: <kbd>Arrow keys</kbd> &nbsp;
+  Button 1 (burner, start): <kbd>X</kbd> &nbsp; Button 2 (hook): <kbd>Z</kbd> &nbsp;
+  &middot; <a href="https://github.com/joergsf4/balloon-master">Source / ROM on GitHub</a>
+</footer>
+
+<script>
+  EJS_player = "#game";
+  EJS_core = "segaMS";                     // SMS Plus
+  EJS_gameUrl = "balloon-master.sms";
+  EJS_gameName = "Balloon Master";
+  EJS_pathtodata = "data/";
+  EJS_color = "#e74e52";
+  EJS_backgroundColor = "#0b0b24";
+  EJS_language = "en-US";                  // no translation files are shipped
+  EJS_disableAutoLang = false;
+  EJS_startOnLoaded = false;               // the Play button gives the browser the click it needs for sound
+  EJS_disableDatabases = true;
+  if (location.search.indexOf("autostart") >= 0) EJS_startOnLoaded = true;     // for local tests
+</script>
+<script src="data/loader.js"></script>
+</body>
+</html>

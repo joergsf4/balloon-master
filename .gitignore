@@ -3,3 +3,5 @@ out/
 *.mp3
 __pycache__/
 *.pyc
+site/
+tools/mister.sh

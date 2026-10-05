@@ -1,0 +1,9 @@
+Balloon Master (Sega Master System) in the browser
+
+The game ROM (balloon-master.sms) is built from the source in this repository (MIT license, see LICENSE)
+with SDCC and devkitSMS (SMSlib / PSGlib: public domain; crt0: GPL2 with linking exception).
+All graphics, music and sounds are made for this project.
+
+The player in data/ is EmulatorJS (GPL-3.0, https://github.com/EmulatorJS/EmulatorJS) with the SMS Plus core
+(libretro port of SMS Plus by Charles MacDonald, GPL, https://github.com/libretro/smsplus-gx).
+Both are unchanged copies from https://cdn.emulatorjs.org/stable/.

@@ -1,54 +1,87 @@
-# Balloon Master (Sega Master System)
+# Balloon Master
 
-Balloon Master: Heißluftballon-Abenteuer. Der Ballon treibt durch eine scrollende Stadt, der Spieler steuert nur die Höhe. Konzept: [KONZEPT.md](KONZEPT.md). Hardware-Wissen und Stolperfallen: [SMS_DEV_NOTES.md](SMS_DEV_NOTES.md).
+**A hot-air balloon adventure for the Sega Master System** — like Flappy Bird, only slower and calmer: the balloon drifts through a scrolling world and you only control the altitude. Six worlds, monsters, a fuel hook, checkpoints and a soundtrack played on the console's PSG chip.
 
-```
-./build.sh        # -> out/rom.sms (Docker, SDCC + devkitSMS), erzeugt auch out/art_preview.png
-./run.sh          # startet Mednafen (WASD + Numpad)
-./build.sh clean
+▶ **[Play it in your browser](https://joergsf4.github.io/balloon-master/)** &nbsp;·&nbsp; 💾 **[Download the ROM](https://github.com/joergsf4/balloon-master/releases)** &nbsp;·&nbsp; [Deutsche Version](README.de.md)
 
-LEVEL_COLS=150 ./build.sh        # kurze Zielstrecke zum Testen des Endes
-START_WORLD=3 ./build.sh         # beginnt in einer anderen Welt (0 London, 1 Piratenbucht, 2 Gewitter, 3 Höhle, 4 Mond, 5 New York)
-tools/worldtest.sh 5 - 30 2      # Kurztest einer Welt: Test-ROM, Bilderbogen nach out/shots/test_sheet.png
-AUTOPLAY=1 ./build.sh            # Version, die den Titel überspringt und selbst fliegt
-tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpeg) nach out/shots/
-```
+![The six worlds](docs/screenshots/overview.png)
 
-## Steuerung (Prototyp)
+## The game
 
-- Knopf 1 oder Hoch: Brenner, der Ballon steigt. Sonst sinkt er langsam.
-- Knopf 2 (bei dir linke Umschalttaste): Seil mit Haken herablassen, loslassen zieht es wieder ein; das Seil darf höchstens 3 Sekunden am Stück draußen sein (Ausfahren + Einholen), dann wird es eingeholt und 1 Sekunde gesperrt. Fässer stehen auf dem Gehweg zwischen den Gebäuden. Trifft der Haken eins, hängt es am Seil, und der Tank füllt sich, sobald es oben am Korb ankommt.
-- Der Brenner verbraucht Treibstoff (Anzeige oben links, rot blinkend wenn fast leer). Ohne Treibstoff sinkt der Ballon nur noch.
-- Knopf 1 startet und startet nach dem Absturz neu. Nach dem Ziel (Tower Bridge, Schatzinsel) führt Knopf 1 in die nächste Welt.
-- Beim Einschalten erscheint zuerst das Logo von Retro Computer Dresden (2,5 s, jede Taste überspringt es), dann das Titelbild.
-- Vorführung (Attract-Modus): 10 s ohne Tastendruck im Titel, dann fliegt das Spiel 25 s selbst (unverwundbar, "DEMO" blinkt) – bei jedem Durchlauf in der nächsten Welt –, danach zurück zum Titel. Jede Taste beendet die Vorführung.
-- Monstertest (`tools/monstertest.sh` → `Balloon Master Monstertest.sms`): Piratenbucht (Krake), danach New York (Riesenaffe, Riesenechse), je kurz, unverwundbar, Tank immer voll. Die Monster haben eigene Laute (Platsch, Brüllen, Grollen).
-- Zwei Varianten (`tools/release.sh`): **Balloon Master Beta** ohne Weltauswahl, **Balloon Master Testing** mit Weltauswahl: Im Titel wählt man mit links/rechts die Startwelt, Taste 1 startet.
-- Sechs Welten nacheinander: London, Piratenbucht, Gewitter (kurz), Höhle, Mond, New York (mit Riesenaffe und Riesenechse). Danach der Schluss und zurück zum Titel.
-- Drei Leben (kleine Ballons unter dem Tank). Ein Absturz kostet ein Leben, es geht ab dem letzten Checkpoint mit vollem Tank weiter (Taste 1). Sind alle Leben weg: „GAME OVER“ mit Continue-Countdown von 9 bis 0 (Taste 1 = Continue, unendlich oft: wieder drei Leben, der Level beginnt von vorn; bei 0 geht es zurück zum Titel). Texte stehen auf einer dunklen Fläche. Übrige Leben bleiben beim Wechsel in die nächste Welt erhalten.
-- Checkpoints bei einem und zwei Dritteln der Strecke („CHECK POINT“, kein Auftanken). Nach einem Absturz geht es dort mit vollem Tank weiter.
-- Berührung von Gebäude, Gewitterwolke oder Boden = Absturz. Die Zahl oben links ist die Strecke.
-- Der Wind (Scrolltempo) wechselt alle paar Sekunden von allein.
+Keep the balloon in the gap between the obstacles above and below. The burner lifts you, otherwise you sink. The burner burns fuel; fish fuel barrels from the pavement with the rope and hook. Six worlds, each with its own look, music and dangers:
 
-## Struktur
-
-| Pfad | Inhalt |
+| | |
 |---|---|
-| `src/main.c` | Spiel: Scrolling, Spaltenerzeugung, Steuerung, Kollision, Weltwechsel |
-| `src/world.h` | Beschreibung einer Welt (Hindernisse, Hintergrund, Boden, Ziel); London steckt in `assets.h`, die Piratenbucht in ROM-Bank 3 (`bank3.c`) |
-| `src/sound.c` | PSG-Klang-Engine: Musik pro Welt, Effekte |
-| `tools/art/palette.py` | Das feste Farbschema (Stilanker), zwei 16er-Paletten |
-| `tools/art/artdefs.py` | Grafiken von London und alle Sprites |
-| `tools/art/sea.py`, `storm.py`, `cave.py`, `moon.py`, `ny.py` | je eine Welt: Grafiken und Beschreibung (`SPEC`) |
-| `tools/music.py` | Musik der Welten 3 bis 6 |
-| `tools/art/pixelart.py` | ASCII → Tiles, Umriss, PNG-Vorschau |
-| `tools/gen_assets.py` | erzeugt `res/generated/assets.h` und `out/art_preview.png` |
-| `tools/shot.sh` | Screenshots für die eigene Prüfung (Mednafen-Aufnahme + ffmpeg) |
-| `tools/art/title_art.py` | zeichnet das Titelbild im Spielstil (`res/gfx/title_art.png`) |
-| `tools/make_logo.py` | Vorspann-Logo „RCD“ (`src/bank9.c`, ROM-Bank 9) |
-| `tools/make_title.py` | Titelbild → `src/bank2.c`, ROM-Bank 2 (für das gezeichnete Bild: `SPREAD=0 COLOR=1 CONTRAST=1 BRIGHT=1 SHARP=1`) |
+| ![London](docs/screenshots/london_city.png) | **London** — houses, towers, storm clouds with lightning; the finish is Tower Bridge. |
+| ![Pirate Cove](docs/screenshots/sea_kraken.png) | **Pirate Cove** — tropical islands, pirate ships and a fort that shoot cannonballs along a ballistic arc (you see the smoke first), and a kraken that slaps at you with its tentacles. |
+| ![Storm](docs/screenshots/storm.png) | **Thunderstorm** — a short, dark world full of angry clouds. Reach the rainbow. |
+| ![Cave](docs/screenshots/cave_lava.png) | **Cave** — stalagmites, stalactites, bats and erupting lava vents that throw volcanic bombs. Reach the exit. |
+| ![Moon](docs/screenshots/moon_ufo.png) | **Moon** — low gravity, craters, a lander and UFOs with a zap beam and plasma shots. |
+| ![New York](docs/screenshots/ny_godzilla.png) | **New York** (finale) — a dense skyline, blimps, UFOs and two giant monsters: a giant ape that throws boulders and a giant lizard that spits fire. Reach the Statue of Liberty. |
 
-## Lizenz und Herkunft
-- Code, Grafiken und Musik sind eigene Werke und stehen unter der MIT-Lizenz (siehe `LICENSE`). Die Musik besteht aus eigenen Kompositionen im Stil der jeweiligen Welt sowie gemeinfreien Melodien (London Bridge, Shanty-Anlehnung, Toccata-Motiv von Bach, US-Hymne von J. S. Smith).
-- Gebaut mit SDCC und devkitSMS (SMSlib, PSGlib: gemeinfrei; Startcode `crt0_sms.s`: GPL2 mit Linking-Ausnahme).
-- Die Titelgrafik ist selbst gezeichnet (`tools/art/title_art.py`), ebenso das Vorspann-Logo (`tools/make_logo.py`, Buchstabenblöcke aus dem Projekt master-system-game).
+The monsters are not fought, they are big obstacles to fly around. Their shots fly in arcs and are announced by smoke or sparks, so you can always dodge them.
+
+<p>
+<img src="docs/screenshots/logo.png" width="32%"> <img src="docs/screenshots/title.png" width="32%"> <img src="docs/screenshots/gameover.png" width="32%">
+</p>
+
+### Controls
+
+| Sega Master System | Browser (default keys) | |
+|---|---|---|
+| Button 1 or Up | `X` or `↑` | Burner — the balloon rises. Also starts the game and continues. |
+| Button 2 | `Z` | Rope with hook — hold to lower it (max. 3 s out, then it is pulled in and locked for 1 s). |
+| D-pad left/right | `←` `→` | Choose the start world on the title screen (Testing build only). |
+
+### Rules in short
+
+- Touching a building, cloud, monster, projectile or the ground is a crash.
+- **Three lives** (little balloons below the fuel bar). After a crash you restart at the last **checkpoint** (at 1/3 and 2/3 of the level) with a full tank.
+- All lives gone: **GAME OVER** with an arcade **continue countdown** from 9 — press Button 1 to continue (three lives, the level starts again), or let it run out to return to the title screen.
+- A hooked barrel refuels you. Fuel left at the finish is a bonus.
+- Wind (scroll speed) changes by itself every few seconds.
+- The levels are fixed, not random, but a fairness check makes sure every gap can be flown through with the real physics.
+- Leave the title screen alone for 10 s and an **attract mode** flies a level for you.
+
+## Technical notes
+
+- Z80, Sega Master System, 256 KB ROM (16 KB banks, Sega mapper), built with **SDCC** and **devkitSMS** in Docker.
+- Parallax from line interrupts: far clouds (1/4 speed), obstacle band (game speed), ground (1.5×).
+- Worlds are streamed column by column; each world lives in its own ROM bank with its own tile set (max. 448 tiles for background *and* sprites).
+- All graphics are generated from ASCII art/Python in `tools/art/` into tiles and tile maps, with a fixed colour scheme and automatic tile de-duplication.
+- Own PSG engine (`src/sound.c`): melody, bass and sound effects; the music is generated by `tools/music.py`.
+- More hardware lessons (VDP timing, SDCC pitfalls, ...): [SMS_DEV_NOTES.md](SMS_DEV_NOTES.md). Design document (German): [KONZEPT.md](KONZEPT.md).
+
+## Build and run
+
+You need Docker (and, to run the ROM, any Master System emulator, e.g. Mednafen, or a MiSTer/Analogue Pocket/flash cart).
+
+```sh
+./build.sh                      # -> out/rom.sms (256 KB)
+NO_LEVEL_SELECT=1 ./build.sh    # the player version without the start-world selection
+./run.sh                        # runs out/rom.sms in Mednafen
+tools/release.sh                # builds "Balloon Master Beta" (player) and "Balloon Master Testing" (with world select)
+tools/make_web.sh               # assembles the browser version in site/
+```
+
+Test builds and helpers (see the scripts for details): `LEVEL_COLS=150`, `START_WORLD=3`, `AUTOPLAY=1`, `GODMODE=1`, `tools/worldtest.sh`, `tools/shot.sh`, `tools/screenshots.sh`, `tools/monstertest.sh`.
+
+### Project layout
+
+| Path | Content |
+|---|---|
+| `src/main.c` | the game: scrolling, column generation, controls, collision, lives, worlds |
+| `src/world.h` | description of a world (obstacles, background, ground, goal, physics, monsters) |
+| `src/sound.c` | PSG sound engine, music tracks and effects |
+| `tools/art/*.py` | the pixel art: palette, shared sprites, one module per world (`SPEC`), title picture |
+| `tools/gen_assets.py` | generates the tiles/maps (`res/generated/assets.h`, `src/bank3.c` ... `bank8.c`) |
+| `tools/music.py`, `tools/make_logo.py`, `tools/make_title.py` | soundtrack, intro logo, title picture |
+| `web/`, `tools/make_web.sh`, `.github/workflows/pages.yml` | the browser version (EmulatorJS, SMS Plus), published on GitHub Pages |
+
+## License and credits
+
+- Code, graphics and music are original works under the **MIT license** (see [LICENSE](LICENSE)). The music consists of original pieces in the style of each world plus public-domain tunes (London Bridge, a sea-shanty arrangement, Bach's Toccata motif, *The Star-Spangled Banner* by J. S. Smith).
+- Built with SDCC and [devkitSMS](https://github.com/sverx/devkitSMS) (SMSlib, PSGlib: public domain; `crt0_sms.s`: GPL-2 with linking exception).
+- The browser version uses [EmulatorJS](https://github.com/EmulatorJS/EmulatorJS) (GPL-3.0) with the SMS Plus core; see `web/LICENSES.txt`.
+- The intro logo shows the letters of **Retro Computer Dresden e.V.** ([retrocomputer-dresden.de](https://retrocomputer-dresden.de)), taken from the club's earlier Master System demo.
+- A fan project in the spirit of classic monster movies; not affiliated with any rights holder.
