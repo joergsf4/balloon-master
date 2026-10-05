@@ -19,7 +19,7 @@ Das Spiel ist von Anfang bis Ende spielbar: Titelbild, sechs Welten, Schlussbild
 | 5 | **Mond** | fertig | geringe Schwerkraft, langsamer Wind, UFOs mit Zap-Blitz, Mondlandefähre, Ziel Mondbasis mit Flagge, Musik: Raketenstart und schwebende Linien (im Stil von „Rocket Man“, eigene Komposition) |
 | 6 | **New York** (Finale) | fertig | Wolkenkratzer, Zeppelin, Flugzeuge; **King Kong** (wirft Felsbrocken) und **Godzilla** (spuckt Feuerbälle) als Höhepunkte, Ziel Freiheitsstatue, danach „THE END“, Musik: Swing-Fanfare mit Walking Bass (im Stil von „New York, New York“, eigene Komposition) |
 
-Checkpoints bei einem und zwei Dritteln der Strecke: Tank wird gefüllt, nach einem Absturz geht es dort weiter (Ballon steht sicher in einer Lücke, Level bleibt identisch, Punktestand vom Checkpoint).
+Checkpoints bei einem und zwei Dritteln der Strecke: der Tank wird dort nicht aufgefüllt, nach einem Absturz geht es dort mit vollem Tank weiter (Ballon steht sicher in einer Lücke, Level bleibt identisch, Punktestand vom Checkpoint).
 
 Querschnitt: Titel mit Artwork (ROM-Bank 2), Parallax (Wolken oben langsam, Hindernisse im Spieltempo, Boden unten schneller), eigene PSG-Klang-Engine mit Musik pro Welt, Treibstoff mit Fässern am Seil, Fairness-Prüfung der Levelerzeugung, fester Level pro Welt.
 Offen: Sandsack, Feinabstimmung der Schwierigkeit (Balance je Welt), Tests auf echter Hardware.

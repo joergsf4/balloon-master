@@ -1157,12 +1157,11 @@ void main(void) {
       update_birds();
       update_lightning();
       update_cannons();
-      if (cp_idx < 2 && dcol >= cp_trigger[cp_idx]) {   // Checkpoint erreicht: Tank voll, hier geht es nach einem Absturz weiter
-        cp_idx++;
-        fuel = FUEL_MAX;
+      if (cp_idx < 2 && dcol >= cp_trigger[cp_idx]) {   // Checkpoint erreicht: hier geht es nach einem Absturz mit vollem Tank weiter
+        cp_idx++;                                       // kein Auftanken: das gibt es erst beim Neustart ab hier
         saved_bonus = bonus;
         cp_msg = 100;
-        snd_sfx(SFX_REFUEL);
+        snd_sfx(SFX_CATCH);
       }
       if (cp_msg) cp_msg--;
 #ifdef TEST_DIE_AT                                             // nur zum Testen: einmaliger Absturz in dieser Spalte
