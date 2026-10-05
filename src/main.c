@@ -300,6 +300,8 @@ static int y32, vy;                   // Höhe in 1/32 Pixel, Geschwindigkeit in
 static unsigned char wind_cur, wind_tgt;
 static unsigned int wind_timer;
 static unsigned char dead_timer;
+static unsigned char cont_count, cont_frames;   // Continue-Countdown (9..0) und Bilder bis zur nächsten Sekunde
+static unsigned char pj_col, pj_w, pj_row, pj_rows;   // Auftrag: dunkle Textfläche in den Hintergrund schreiben
 static unsigned char burner;
 static unsigned char new_col;
 static unsigned char flash, flash_on;      // Himmel-Aufblitzen (Frames), aktueller Palettenzustand
@@ -900,6 +902,25 @@ static void draw_fuel(void) {
   SMS_addSprite(40, 11, FUEL_CAP);
 }
 
+// Dunkle Fläche hinter Texten (Bildschirm-Kachelspalten c0..c1, Zeilen r0..r1, Zeilen 2..20). Der Hintergrund scrollt in
+// diesen Zuständen nicht; Bildschirmspalte k liegt in Kartenspalte (dcol + k) & 31. Geschrieben wird in der Austastlücke.
+static void draw_panel(unsigned char c0, unsigned char r0, unsigned char c1, unsigned char r1) {
+  pj_col = (unsigned char)(dcol + c0) & 31;
+  pj_w = c1 - c0 + 1;
+  pj_row = r0;
+  pj_rows = r1 - r0 + 1;
+}
+
+static void panel_step(void) {                          // höchstens 4 Zeilen je Bild, sonst reicht die Austastlücke nicht
+  unsigned char n = 4, k;
+  while (pj_rows && n) {
+    for (k = 0; k < pj_w; k++) SMS_setTileatXY((pj_col + k) & 31, pj_row, PANEL | 0x0800);   // Sprite-Palette (Navy)
+    pj_row++;
+    pj_rows--;
+    n--;
+  }
+}
+
 static void draw_lives(void) {                         // einzeln statt Schleife: SMS_addSprite_f rettet Schleifenregister nicht zuverlässig
   if (lives > 0) SMS_addSprite(8, 21, LIFE);
   if (lives > 1) SMS_addSprite(17, 21, LIFE);
@@ -979,14 +1000,15 @@ static void draw_sprites(void) {
       text(104, 98, "PUSH 1");                        // noch Leben übrig: weiter ab Checkpoint
     } else {
       text(112, 44, "GAME");
-      text(112, 56, "OVER");
-      text(112, 72, "BEST");
-      number(108, 82, best);
-      text(100, 98, "CONTINUE");
-      text(104, 108, "PUSH 1");
+      text(112, 54, "OVER");
+      text(112, 70, "BEST");
+      number(108, 80, best);
+      text(100, 96, "CONTINUE");
+      SMS_addSprite(124, 106, SPR_FONT_START + 26 + cont_count);   // Ziffer 9..0
+      text(104, 120, "PUSH 1");
     }
   }
-  if (state != ST_DEAD || dead_timer >= 30 || !(dead_timer & 4))
+  if (state != ST_DEAD || (dead_timer < 30 && !(dead_timer & 4)))   // nach dem Absturz blinkt der Ballon kurz, dann ist er weg
     spr_obj(BALLOON_X, y, burner ? BALLOON_BURN : BALLOON_IDLE, BALLOON_IDLE_W, BALLOON_IDLE_H);
   if (cp_msg && state == ST_PLAY) {
     text(108, 40, "CHECK");
@@ -1036,7 +1058,7 @@ static void init_game_vram(void) {
   irq_off();
   SMS_displayOff();
   SMS_VRAMmemsetW(0, 0, 16384);          // Tilemap = Tile 0 = leerer Himmel
-  SMS_loadTiles(sprite_tiles, 0, sizeof(sprite_tiles));
+  SMS_loadTiles(sprite_tiles, 0, SPRITE_TILE_BYTES);
   SMS_loadTiles(W->bg_tiles, BG_TILE_BASE, W->bg_bytes);
   SMS_loadBGPalette(W->bg_pal);
   SMS_loadSpritePalette(sprite_palette);
@@ -1127,7 +1149,7 @@ void main(void) {
     new_col = 0;
 #ifdef AUTOPLAY                                       // nur zum Testen: Titel überspringen und selbst fliegen
     if (state == ST_TITLE && title_timer > 90) pressed |= PORT_A_KEY_1;
-    if (state == ST_DEAD && dead_timer >= 40) pressed |= PORT_A_KEY_1;
+    if (state == ST_DEAD && dead_timer >= 40 && lives) pressed |= PORT_A_KEY_1;   // bei Game Over wartet der Test auf den Countdown
     if (state == ST_WIN && win_timer >= 130) pressed |= PORT_A_KEY_1;
     if (state == ST_PLAY) keys = autopilot(keys);
 #endif
@@ -1197,6 +1219,8 @@ void main(void) {
 #endif
         if (dcol + bonus > best) best = dcol + bonus;
         if (lives) lives--;
+        cont_count = 9;
+        cont_frames = 0;
         rope = 0;
         carrying = 0;
         state = ST_DEAD;
@@ -1220,7 +1244,8 @@ void main(void) {
       }
     } else if (state == ST_WIN) {
       if (win_timer < 255) win_timer++;
-      if (W->special_finish) update_scroll_and_wind();      // ohne Brücke bleibt die Landschaft stehen (Ziel nur sichtbar)
+      if (W->special_finish && win_timer < 30) update_scroll_and_wind();   // ohne Brücke bleibt die Landschaft stehen (Ziel nur sichtbar), mit Brücke ab dem Text
+      if (win_timer == 30) draw_panel(10, 12, 22, 20);                     // Textfläche hinter LEVEL COMPLETE / THE END
       update_sparks();
       if ((y32 >> 5) < 70) y32 += 16;                 // Ballon sanft auf Höhe 70 schweben lassen
       else if ((y32 >> 5) > 70) y32 -= 16;
@@ -1236,6 +1261,10 @@ void main(void) {
       }
     } else {
       if (dead_timer < 255) dead_timer++;
+      if (dead_timer == 30) {                           // Textfläche hinter GAME OVER bzw. PUSH 1
+        if (lives) draw_panel(11, 11, 20, 13);
+        else draw_panel(10, 4, 22, 16);
+      }
       if (dead_timer >= 30 && (pressed & PORT_A_KEY_1)) {
         if (!lives) {                                   // Continue: wieder drei Leben, Level von vorn
           lives = START_LIVES;
@@ -1243,6 +1272,13 @@ void main(void) {
         }
         new_game();
         state = ST_PLAY;
+      } else if (!lives && dead_timer >= 30) {          // Arcade-Countdown: 9 Sekunden, dann Spielende
+        cont_frames++;
+        if (cont_frames >= 60) {
+          cont_frames = 0;
+          if (cont_count) cont_count--;
+          else show_title();
+        }
       }
     }
 
@@ -1257,6 +1293,7 @@ void main(void) {
     SMS_waitForVBlank();
     SMS_copySpritestoSAT();
     if (new_col) upload_column(dcol + 32);
+    if (pj_rows) panel_step();
     if (state == ST_TITLE && sel_dirty) {
       sel_dirty = 0;
       draw_world_select();

@@ -200,3 +200,6 @@ Offen: ein Bot-Test am Rechner, der tausende Seeds auf Lösbarkeit prüft. Lohnt
 - **New York:** dichte Hintergrund-Skyline; Zeppelin und Ufos (Außerirdische greifen an, schießen) von oben; Musik: US-Hymne (gemeinfrei).
 
 - **Leben:** drei Leben (kleine Ballons unter dem Tank, `lives` in `main.c`), Absturz = ein Leben weniger und Neustart am Checkpoint; ohne Leben „CONTINUE“ (unendlich): drei Leben, Level von vorn. Test: `TEST_DIE_AT=<Spalte> TEST_DIE_REPEAT=1 AUTOPLAY=1`.
+
+- **Continue:** Arcade-Countdown 9 bis 0 nach GAME OVER (`cont_count`), bei 0 zurück zum Titel. Texte (GAME OVER, LEVEL COMPLETE) liegen auf einer dunklen Fläche im Hintergrund (`draw_panel`, Kachel `PANEL` in der Sprite-Palette).
+- **ROM:** 256 KB (8 Bänke + London in Bank 8). Gemeinsame Sprites in `src/shared_data.c` (fester Bereich).

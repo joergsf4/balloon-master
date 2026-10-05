@@ -95,3 +95,8 @@ Durchsichtige Pixel der Hindernis-Kacheln werden beim Erzeugen mit dem Hintergru
 
 ## SMS_addSprite in Schleifen
 `SMS_addSprite_f` ist `__naked __preserves_regs(d,e,...)`. In einer Schleife mit Zählvariable zeichnete sie bei `draw_lives` nur das erste Sprite (der Zähler ging verloren, kein Fehler beim Bauen). Gelöst durch drei einzelne Aufrufe; die Schleife in `draw_fuel` ging zufällig gut. Bei neuen Schleifen mit `SMS_addSprite` im Screenshot nachzählen.
+
+
+## Bank 8, 256-KB-ROM, Textfläche
+- London liegt wie die anderen Welten in einer ROM-Bank (Bank 8, `src/bank8.c`); die ROM ist damit 256 KB groß. Der feste Bereich (Bank 0 und 1) hat dadurch wieder etwa 8 KB frei. Gemeinsame Sprites (`sprite_tiles`, `sprite_palette`) stehen in `src/shared_data.c` im festen Bereich, `assets.h` enthält nur noch `#define`s und `extern`s (sonst würden die Arrays in jede Bank-Übersetzung gelangen).
+- Textfläche: Eine Sprite-Kachel (`PANEL`) wird mit gesetztem Attribut-Bit 11 (Sprite-Palette) als Hintergrundkachel in die Tilemap geschrieben. Das Rechteck wird erst in der Austastlücke und höchstens 4 Zeilen je Bild gezeichnet. Der Hintergrund darf in dieser Zeit nicht scrollen (Bildschirmspalte k = Kartenspalte `(dcol + k) & 31`, plus Unterpixel `sub >> 4`, deshalb je 1 Spalte Rand). Neustart lädt alle Spalten neu und entfernt die Fläche.

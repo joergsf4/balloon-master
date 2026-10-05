@@ -20,7 +20,7 @@ BANKNUMS := $(sort $(patsubst bank%.c,%,$(wildcard bank?.c)))
 BANKOBJS := $(foreach n,$(BANKNUMS),$(OUT)/bank$(n).rel)
 LDFLAGS = -mz80 --no-std-crt0 --data-loc 0xC000 $(foreach n,$(BANKNUMS),-Wl-b_BANK$(n)=0x$(n)8000)
 
-SRCS = main.c sound.c
+SRCS = main.c sound.c shared_data.c
 OBJS = $(addprefix $(OUT)/,$(SRCS:.c=.rel))
 
 all: $(TARGET).sms
@@ -34,8 +34,8 @@ $(TARGET).ihx: $(OBJS) $(BANKOBJS)
 	$(CC) $(LDFLAGS) -o $@ $(CRT0) $(SMSLIB_LIB) $(OBJS) $(BANKOBJS)
 
 # Titelbild und Welten (von tools/make_title.py bzw. tools/gen_assets.py erzeugt): eigene Konstanten-Sektion je Bank
-$(BANKOBJS): $(OUT)/bank%.rel: bank%.c bank%.h world.h
-	$(CC) -mz80 -I. --constseg BANK$* -c -o $@ $<
+$(BANKOBJS): $(OUT)/bank%.rel: bank%.c bank%.h world.h ../res/generated/assets.h
+	$(CC) -mz80 -I. -I../res/generated --constseg BANK$* -c -o $@ $<
 
 $(TARGET).sms: $(TARGET).ihx
 	makesms -pp $< $@

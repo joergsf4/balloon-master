@@ -23,7 +23,7 @@ tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpe
 - Vorführung (Attract-Modus): 10 s ohne Tastendruck im Titel, dann fliegt das Spiel 25 s selbst (unverwundbar, "DEMO" blinkt) – bei jedem Durchlauf in der nächsten Welt –, danach zurück zum Titel. Jede Taste beendet die Vorführung.
 - Zwei Varianten (`tools/release.sh`): **Balloon Master Beta** ohne Weltauswahl, **Balloon Master Testing** mit Weltauswahl: Im Titel wählt man mit links/rechts die Startwelt, Taste 1 startet.
 - Sechs Welten nacheinander: London, Piratenbucht, Gewitter (kurz), Höhle, Mond, New York (mit King Kong und Godzilla). Danach der Schluss und zurück zum Titel.
-- Drei Leben (kleine Ballons unter dem Tank). Ein Absturz kostet ein Leben, es geht ab dem letzten Checkpoint mit vollem Tank weiter (Taste 1). Sind alle Leben weg: „GAME OVER / CONTINUE“, unendlich oft; mit Continue hat man wieder drei Leben, der Level beginnt von vorn. Übrige Leben bleiben beim Wechsel in die nächste Welt erhalten.
+- Drei Leben (kleine Ballons unter dem Tank). Ein Absturz kostet ein Leben, es geht ab dem letzten Checkpoint mit vollem Tank weiter (Taste 1). Sind alle Leben weg: „GAME OVER“ mit Continue-Countdown von 9 bis 0 (Taste 1 = Continue, unendlich oft: wieder drei Leben, der Level beginnt von vorn; bei 0 geht es zurück zum Titel). Texte stehen auf einer dunklen Fläche. Übrige Leben bleiben beim Wechsel in die nächste Welt erhalten.
 - Checkpoints bei einem und zwei Dritteln der Strecke („CHECK POINT“, kein Auftanken). Nach einem Absturz geht es dort mit vollem Tank weiter.
 - Berührung von Gebäude, Gewitterwolke oder Boden = Absturz. Die Zahl oben links ist die Strecke.
 - Der Wind (Scrolltempo) wechselt alle paar Sekunden von allein.

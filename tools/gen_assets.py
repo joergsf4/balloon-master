@@ -23,8 +23,8 @@ def pal_bytes(letters):
     return [0 if c == '.' else sms_byte(COLORS[c]) for c in letters]
 
 
-def c_array(name, data, typ="unsigned char"):
-    out = f"static const {typ} {name}[] = {{\n"
+def c_array(name, data, typ="unsigned char", static=True):
+    out = f"{'static ' if static else ''}const {typ} {name}[] = {{\n"
     for i in range(0, len(data), 16):
         out += "  " + ", ".join(f"0x{b:02X}" for b in data[i:i + 16]) + ",\n"
     return out + "};\n\n"
@@ -54,7 +54,7 @@ def london_world(maps):
     out += "static const unsigned int london_band[32 * 19] = {\n"
     out += "  " + ", ".join(["0"] * (32 * 11)) + ",\n"      # Tile-Zeilen 2..12: Himmel
     out += "  " + ", ".join(str(v) for v in idx["SKYLINE"]) + "\n};\n"
-    out += "static const World world_london = {\n"
+    out += "const World world_london = {\n"
     out += "  bg_tiles, sizeof(bg_tiles), bg_palette, london_band,\n"
     out += "  { { %d, %d, %d, %d }, { %d, %d, %d, %d }, { %d, %d, %d, %d } },\n" % (
         (g("PAVEMENT"),) * 4 + (g("ROAD"),) * 4 + (g("ROAD_DASH"), g("ROAD_DASH"), g("ROAD"), g("ROAD")))
@@ -273,11 +273,12 @@ WORLD_MODULES = ["sea", "storm", "cave", "moon", "ny"]             # weitere Wel
 def emit_world_table(specs):
     """src/worlds_gen.h: Tabelle aller Welten (London zuerst) und ihrer ROM-Bänke."""
     s = "// GENERIERT von tools/gen_assets.py - nicht von Hand ändern.\n#ifndef WORLDS_GEN_H\n#define WORLDS_GEN_H\n\n"
+    s += '#include "bank8.h"\n'
     for sp in specs:
         s += f'#include "bank{sp["bank"]}.h"\n'
     s += f"\n#define NUM_WORLDS {len(specs) + 1}\n"
     s += "static const World *const worlds[NUM_WORLDS] = { &world_london" + "".join(f", &world_{sp['id']}" for sp in specs) + " };\n"
-    s += "static const unsigned char world_bank[NUM_WORLDS] = { 0" + "".join(f", {sp['bank']}" for sp in specs) + " };   // ROM-Bank der Weltdaten (0 = Hauptspeicher)\n\n#endif\n"
+    s += "static const unsigned char world_bank[NUM_WORLDS] = { 8" + "".join(f", {sp['bank']}" for sp in specs) + " };   // ROM-Bank der Weltdaten (London = 8)\n\n#endif\n"
     open(os.path.join(ROOT, "src", "worlds_gen.h"), "w").write(s)
 
 
@@ -341,23 +342,35 @@ def main():
     assert bg_next <= 448, f"{bg_next} Tiles: ab Tile 448 liegen Tilemap und Sprite-Tabelle im VRAM"
     with open(os.path.join(ROOT, "res", "generated", "assets.h"), "w") as f:
         f.write("// GENERIERT von tools/gen_assets.py - nicht von Hand ändern\n#pragma once\n\n#include \"world.h\"\n\n")
-        f.write(f"#define FONT_TILE_START {font_start}\n#define BG_TILE_BASE {bg_base}\n#define SPR_FONT_START {spr_font_start}\n\n")
+        f.write(f"#define FONT_TILE_START {font_start}\n#define BG_TILE_BASE {bg_base}\n#define SPR_FONT_START {spr_font_start}\n")
+        f.write(f"#define SPRITE_TILE_BYTES {len(spr_tiles)}\n\n")
         f.write("// Objekte: erstes Tile, Breite und Höhe in Tiles (Tiles zeilenweise)\n")
         for n, start, w, h in defines:
             f.write(f"#define {n} {start}\n#define {n}_W {w}\n#define {n}_H {h}\n")
-        f.write("\n// Hintergrundobjekte: Tile-Nummern zeilenweise (gleiche Tiles sind zusammengelegt)\n")
+        f.write("\n// Hintergrundobjekte (London, liegen in Bank 8): Breite und Höhe in Tiles\n")
         for n, w, h, idx in maps:
             f.write(f"#define {n}_W {w}\n#define {n}_H {h}\n")
+        f.write("\n// gemeinsame Sprites (alle Welten), liegen im festen Bereich: src/shared_data.c\n")
+        f.write("extern const unsigned char sprite_palette[16];\nextern const unsigned char sprite_tiles[SPRITE_TILE_BYTES];\n")
+    with open(os.path.join(ROOT, "src", "shared_data.c"), "w") as f:
+        f.write("// GENERIERT von tools/gen_assets.py - nicht von Hand ändern.\n#include \"assets.h\"\n\n")
+        f.write(c_array("sprite_palette", pal_bytes(SPRITE_PAL), static=False).replace("sprite_palette[]", "sprite_palette[16]"))
+        f.write(c_array("sprite_tiles", list(spr_tiles), static=False).replace("sprite_tiles[]", "sprite_tiles[SPRITE_TILE_BYTES]"))
+    with open(os.path.join(ROOT, "src", "bank8.c"), "w") as f:      # London liegt in ROM-Bank 8
+        f.write("// GENERIERT von tools/gen_assets.py - nicht von Hand ändern.\n// Wird mit --constseg BANK8 übersetzt und liegt in ROM-Bank 8.\n")
+        f.write('#include "bank8.h"\n#include "assets.h"\n\n')
+        for n, w, h, idx in maps:
             f.write(f"static const unsigned int {n.lower()}_map[] = {{\n")
             for i in range(0, len(idx), 16):
                 f.write("  " + ", ".join(str(v) for v in idx[i:i + 16]) + ",\n")
             f.write("};\n")
         f.write("\n")
-        f.write(c_array("sprite_palette", pal_bytes(SPRITE_PAL)))
         f.write(c_array("bg_palette", pal_bytes(BG_PAL)))
-        f.write(c_array("sprite_tiles", list(spr_tiles)))
         f.write(c_array("bg_tiles", list(bg_tiles)))
         f.write(london_world(maps))
+    with open(os.path.join(ROOT, "src", "bank8.h"), "w") as f:
+        f.write("// GENERIERT von tools/gen_assets.py - nicht von Hand ändern.\n#ifndef BANK8_H\n#define BANK8_H\n\n#include \"world.h\"\n\n")
+        f.write("extern const World world_london;   // Daten liegen in ROM-Bank 8\n\n#endif\n")
 
     # Vorschau: alles auf Himmelblau, 4-fach vergrößert (Sprites mit Sprite-, Rest mit BG-Palette)
     sky = rgb8(COLORS['a'])
