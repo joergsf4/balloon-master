@@ -291,6 +291,7 @@ static void upload_column(unsigned int c) {
 
 // ---------------------------------------------------------------- Spielzustand
 static unsigned char state;
+static unsigned char demo, demo_next;   // Vorführung läuft / nächste Welt der Vorführung
 static unsigned int frame;
 static unsigned char sub;             // 1/16 Pixel innerhalb einer Spalte (0..127)
 static int y32, vy;                   // Höhe in 1/32 Pixel, Geschwindigkeit in 1/32 Pixel pro Frame
@@ -964,10 +965,15 @@ static void draw_sprites(void) {
   if (state == ST_PLAY) draw_rope(y);
   number(8, 2, dcol + bonus);
   draw_fuel();
+  if (demo && (frame & 32)) text(112, 40, "DEMO");
 }
 
 // ---------------------------------------------------------------- Start
 static unsigned char title_timer;
+static unsigned int idle_timer;                 // Frames ohne Tastendruck im Titel; danach startet die Vorführung
+static unsigned int demo_timer;
+#define IDLE_FRAMES 600                          // 10 s bis zur Vorführung
+#define DEMO_FRAMES 1500                         // 25 s je Welt
 static unsigned char start_sel = START_WORLD;   // auf dem Titelbild mit links/rechts wählbar (zum Testen)
 static unsigned char sel_dirty;
 
@@ -1034,10 +1040,36 @@ static void show_title(void) {
   flash = 0;
   flash_on = 0;
   title_timer = 0;
+  idle_timer = 0;
   state = ST_TITLE;
   snd_music(1);
   SMS_displayOn();
   irq_on(0);
+}
+
+// Autopilot (Demo und Test): fliegt in die Mitte des Korridors der nächsten Hindernisse und weicht Vögeln aus
+static unsigned int autopilot(unsigned int keys) {
+  int tgt = 80, lo_max = 0, hi_min = 400, l;
+  unsigned char k;
+  for (k = 0; k < RING; k++) {
+    if (!ring[k].w) continue;
+    l = (int)(ring[k].start - dcol) * 8 - (sub >> 4);
+    if (l < BALLOON_X + 70 && l + ring[k].w * 8 > BALLOON_X - 24) {
+      if (ring[k].lo > lo_max) lo_max = ring[k].lo;
+      if (ring[k].hi < hi_min) hi_min = ring[k].hi;
+    }
+  }
+  if (hi_min < 400) tgt = (lo_max < hi_min) ? (lo_max + hi_min) / 2 : hi_min - 6;
+  for (k = 0; k < MAX_BIRDS; k++) {                 // Vögeln ausweichen: über oder unter ihnen fliegen, wo der Korridor es erlaubt
+    if (!birds[k].on || birds[k].x < BALLOON_X - 20 || birds[k].x > BALLOON_X + 110) continue;
+    l = birds[k].y;
+    if (tgt + 15 > l - 22 && tgt + 15 < l + 34) {
+      if (l - 28 >= lo_max && l - 28 < hi_min) tgt = l - 28;
+      else if (l + 12 < hi_min) tgt = l + 12;
+    }
+  }
+  if ((y32 >> 5) + (vy >> 3) > tgt) keys |= PORT_A_KEY_1;
+  return keys;
 }
 
 void main(void) {
@@ -1059,33 +1091,35 @@ void main(void) {
     if (state == ST_TITLE && title_timer > 90) pressed |= PORT_A_KEY_1;
     if (state == ST_DEAD && dead_timer >= 40) pressed |= PORT_A_KEY_1;
     if (state == ST_WIN && win_timer >= 130) pressed |= PORT_A_KEY_1;
-    if (state == ST_PLAY) {                               // Pilot: in die Mitte des Korridors der nächsten Hindernisse
-      int tgt = 80, lo_max = 0, hi_min = 400, l;
-      unsigned char k;
-      for (k = 0; k < RING; k++) {
-        if (!ring[k].w) continue;
-        l = (int)(ring[k].start - dcol) * 8 - (sub >> 4);
-        if (l < BALLOON_X + 70 && l + ring[k].w * 8 > BALLOON_X - 24) {
-          if (ring[k].lo > lo_max) lo_max = ring[k].lo;
-          if (ring[k].hi < hi_min) hi_min = ring[k].hi;
-        }
-      }
-      if (hi_min < 400) tgt = (lo_max < hi_min) ? (lo_max + hi_min) / 2 : hi_min - 6;
-      for (k = 0; k < MAX_BIRDS; k++) {                 // Vögeln ausweichen: über oder unter ihnen fliegen, wo der Korridor es erlaubt
-        if (!birds[k].on || birds[k].x < BALLOON_X - 20 || birds[k].x > BALLOON_X + 110) continue;
-        l = birds[k].y;
-        if (tgt + 15 > l - 22 && tgt + 15 < l + 34) {
-          if (l - 28 >= lo_max && l - 28 < hi_min) tgt = l - 28;
-          else if (l + 12 < hi_min) tgt = l + 12;
-        }
-      }
-      if ((y32 >> 5) + (vy >> 3) > tgt) keys |= PORT_A_KEY_1;
-    }
+    if (state == ST_PLAY) keys = autopilot(keys);
 #endif
 
+    if (demo) {
+      if ((pressed & (PORT_A_KEY_1 | PORT_A_KEY_2)) || demo_timer >= DEMO_FRAMES || state != ST_PLAY) {
+        demo = 0;                                  // Taste oder Ende: zurück zum Titel
+        show_title();
+        pressed = 0;
+      } else {
+        keys = autopilot(0);
+        fuel = FUEL_MAX;
+        demo_timer++;
+      }
+    }
     if (state == ST_TITLE) {
       burner = 0;
       title_timer++;
+      idle_timer++;
+      if (pressed) idle_timer = 0;
+      if (idle_timer >= IDLE_FRAMES) {               // Vorführung: selbstfliegend, unverwundbar, jedes Mal eine andere Welt
+        demo = 1;
+        demo_timer = 0;
+        select_world(demo_next);
+        demo_next++;
+        if (demo_next >= NUM_WORLDS) demo_next = 0;
+        init_game_vram();
+        new_game();
+        state = ST_PLAY;
+      }
       if ((pressed & PORT_A_KEY_RIGHT) && start_sel + 1 < NUM_WORLDS) { start_sel++; sel_dirty = 1; }
       if ((pressed & PORT_A_KEY_LEFT) && start_sel > 0) { start_sel--; sel_dirty = 1; }
       if (pressed & PORT_A_KEY_1) {
@@ -1115,7 +1149,7 @@ void main(void) {
 #elif defined(GODMODE)                                         // nur zum Testen: unverwundbar
       if (0) {
 #else
-      if (crashed()) {
+      if (!demo && crashed()) {
 #endif
         if (dcol + bonus > best) best = dcol + bonus;
         rope = 0;
