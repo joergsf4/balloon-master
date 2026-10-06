@@ -60,6 +60,7 @@ typedef struct {
   Anim anim[3];
   unsigned char align;           // Hindernisse beginnen auf einem Vielfachen dieser Spaltenzahl (Hintergrund wiederholt sich so oft), 0 = egal
   unsigned char nofuel;          // 1 = kein Treibstoff (unbegrenzt brennen, keine Fässer, keine Anzeige)
+  unsigned char boss;            // erste Sprite-Kachel des Sturm-Monsters (6x5 Kacheln, Bild B folgt nach 30), 0 = keins
   unsigned char chain;           // Kettenwelt (Gewitter): Anzahl der Boden- und Deckenmodule; sie werden lückenlos zum Wolkenkanal gereiht, 0 = normal
 } World;
 

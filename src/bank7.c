@@ -833,5 +833,6 @@ const World world_ny = {
   { { 13, 227, ny_anim0_b }, { 12, 283, ny_anim1_b }, { 0, 0, 0 } },
   8,
   0,
+  0,
   0
 };

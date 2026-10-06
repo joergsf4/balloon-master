@@ -14,7 +14,7 @@ Keep the balloon in the gap between the obstacles above and below. The burner li
 |---|---|
 | ![London](docs/screenshots/london_city.png) | **London** — houses, towers, storm clouds with lightning; the finish is Tower Bridge. |
 | ![Pirate Cove](docs/screenshots/sea_kraken.png) | **Pirate Cove** — tropical islands, pirate ships and a fort that shoot cannonballs along a ballistic arc (you see the smoke first), and a kraken that slaps at you with its tentacles. |
-| ![Storm](docs/screenshots/storm.png) | **Thunderstorm** — a short, dark world full of angry clouds. Reach the rainbow. |
+| ![Storm](docs/screenshots/storm.png) | **Thunderstorm** — a long, fast storm: fly through a channel of cloud banks with lightning, rain and storm birds, no fuel, and a lizard head that rises out of the clouds and spits lightning. Reach the rainbow. |
 | ![Cave](docs/screenshots/cave_lava.png) | **Cave** — stalagmites, stalactites, bats and erupting lava vents that throw volcanic bombs. Reach the exit. |
 | ![Moon](docs/screenshots/moon_ufo.png) | **Moon** — low gravity, craters, a lander and UFOs with a zap beam and plasma shots. |
 | ![New York](docs/screenshots/ny_godzilla.png) | **New York** (finale) — a dense skyline, blimps, UFOs and two giant monsters: a giant ape that throws boulders and a giant lizard that spits fire. Reach the Statue of Liberty. |

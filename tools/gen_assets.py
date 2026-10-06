@@ -70,7 +70,7 @@ def london_world(maps):
     out += "  BIRD_UP, BIRD_UP_W, BIRD_UP_H, 3, 6, 13, 12, 8,\n"
     out += "  0,\n"
     out += "  { 0, 0 }, { 0, 0 }, { 0, 0 },\n"
-    out += "  { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },\n  0,\n  0,\n  0\n};\n"
+    out += "  { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },\n  0,\n  0,\n  0,\n  0\n};\n"
     return out
 
 
@@ -260,7 +260,7 @@ def emit_world(spec, bg_base, shared):
             ans.append("{ %d, %d, %s_anim%d_b }" % (cnt_, first_, ident, n_))
         else:
             ans.append("{ 0, 0, 0 }")
-    c += "  { %s },\n  %d,\n  %d,\n  %d\n};\n" % (", ".join(ans), spec.get("align", 0), spec.get("nofuel", 0), spec.get("chain", 0))
+    c += "  { %s },\n  %d,\n  %d,\n  %d,\n  %d\n};\n" % (", ".join(ans), spec.get("align", 0), spec.get("nofuel", 0), wsp[spec["boss"]] if spec.get("boss") else 0, spec.get("chain", 0))
     open(os.path.join(ROOT, "src", f"bank{spec['bank']}.c"), "w").write(c)
     open(os.path.join(ROOT, "src", f"bank{spec['bank']}.h"), "w").write(
         f"// GENERIERT von tools/gen_assets.py - nicht von Hand ändern.\n#ifndef BANK{spec['bank']}_H\n#define BANK{spec['bank']}_H\n\n"

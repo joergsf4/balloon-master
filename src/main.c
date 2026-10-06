@@ -150,7 +150,9 @@ static void spawn_barrel(Seg *s) {
 }
 
 static unsigned char prev_lo, prev_hi;   // Korridor des vorherigen Abschnitts
-static unsigned char chain_t, chain_b;   // Kettenwelt: zuletzt gewählte Decken- und Bodenmodule
+static unsigned char boss_state, boss_n, boss_t;   // Sturm-Monster: 0 aus, 1 steigt, 2 spuckt, 3 sinkt; Zahl der Auftritte; Zeitgeber
+static int boss_x, boss_y;
+static unsigned char chain_mode[2], chain_left[2];   // Kettenwelt, je Decke (0) und Boden (1): Phase (0 frei, 1 Anfang, 2 ruhig, 3 schwer, 4 Ende) und übrige Abschnitte darin
 static unsigned char sp_done, last_special, sp_follow;   // Höhepunkte (z. B. Monster) bereits erschienen / letzter Abschnitt war einer
 
 // Bilder, die der Ballon aus der Ruhe braucht, um px Pixel zu sinken (down) oder zu steigen.
@@ -192,6 +194,13 @@ static unsigned char gap_for_corridor(unsigned char lo, unsigned char hi, unsign
   return gap;
 }
 
+static unsigned char corridor_overlaps(unsigned char lo, unsigned char hi) {   // billige Vorprüfung: genug Überlappung mit dem vorigen Korridor?
+  int ov_lo = lo, ov_hi = hi;
+  if (prev_lo > ov_lo) ov_lo = prev_lo;
+  if (prev_hi < ov_hi) ov_hi = prev_hi;
+  return ov_hi - ov_lo >= CORR_MARGIN;
+}
+
 static unsigned char barrel_ahead(void) {
   unsigned char i;
   for (i = 0; i < MAX_BARRELS; i++)
@@ -223,28 +232,50 @@ static void gen_segment(void) {
     hi = W->bld[B_FINISH].hi;
     gap = gap_for_corridor(lo, hi, 14);
     if (gap < 14) gap = 14;
-  } else if (W->chain) {                                     // Wolkenkanal: Decke und Boden zufällig, lückenlos aneinander
-    unsigned char t = chain_t, b = chain_b, tr, min_c;
-    min_c = gen_end < intro_end ? 70 : (gen_end < mid_start ? 55 : 47);     // Kanalbreite (px Spielraum): am Anfang weit, am Ende eng
-    for (tr = 0; tr < 12; tr++) {
-      unsigned char tt = 1 + lvl_rand8() % W->chain, bb = 1 + lvl_rand8() % W->chain;
-      if (W->bld[bb].hi >= W->ceil[tt].lo + min_c && tr < 11) {
-        lo = W->ceil[tt].lo;
-        hi = W->bld[bb].hi;
-        if (gap_for_corridor(lo, hi, 0) == 0) {
-          t = tt;
-          b = bb;
-          break;
-        }
+  } else if (W->chain) {                                     // Wolkenkanal: Decke und Boden laufen in eigenen Phasen (versetzt): frei, Anfangskappe, ruhig, schwer, Endkappe
+    unsigned char t, b, tr, side, md[2], ntry, hold;               // Decke 1,2 ruhig / 3..5 schwer / 6 Anfang / 7 Ende; Boden 1,2 / 3,4 / 5 / 6
+    hold = W->boss && (boss_state || (boss_n < 2 && gen_end >= (level_len / 100) * (boss_n ? 82 : 52)));
+    if (hold) {                                              // das Monster ist fällig: Wolkendecke läuft aus und bleibt frei, bis es erschienen ist
+      if (chain_mode[0] == 0) {
+        if (chain_left[0] == 0) chain_left[0] = 2;
+      } else if (chain_mode[0] < 3) {
+        chain_mode[0] = 3;
+        chain_left[0] = 0;
       }
     }
-    chain_t = t;
-    chain_b = b;
+    for (side = 0; side < 2; side++) {
+      if (chain_left[side] == 0) {
+        chain_mode[side] = chain_mode[side] == 4 ? 0 : chain_mode[side] + 1;
+        chain_left[side] = chain_mode[side] == 0 ? 3 + (lvl_rand8() & 3) : (chain_mode[side] == 2 ? 3 + (lvl_rand8() & 3) : (chain_mode[side] == 3 ? 2 + (lvl_rand8() & 3) : 1));
+      }
+      chain_left[side]--;
+      md[side] = chain_mode[side];
+    }
+    t = b = 0;
+    lo = Y_MIN;
+    hi = W->bld[0].hi;
+    for (tr = 0; tr < 8; tr++) {
+      t = md[0] == 1 ? 6 : (md[0] == 4 ? 7 : (md[0] == 2 ? 1 + lvl_rand8() % 2 : (md[0] == 3 ? 3 + lvl_rand8() % 3 : 0)));
+      if (boss_state) t = 0;                                   // solange das Monster da ist, hängt keine Wolke über ihm
+      b = md[1] == 1 ? 5 : (md[1] == 4 ? 6 : (md[1] == 2 ? 1 + lvl_rand8() % 2 : (md[1] == 3 ? 3 + lvl_rand8() % 2 : 0)));
+      ntry = 1;
+      if (t && b) {
+        lo = W->ceil[t].lo;
+        hi = W->bld[b].hi;
+        if (hi < lo + 40 || !corridor_overlaps(lo, hi)) ntry = 0;     // frames_to_shift in gap_for_corridor ist teuer (bis 600 Runden): hier nicht aufrufen
+      }
+      if (ntry) break;
+      if (tr == 6) {                                           // Rückfall: schwere Wolken durch ruhige ersetzen
+        if (md[0] == 3) md[0] = 2;
+        if (md[1] == 3) md[1] = 2;
+      }
+    }
     s->ceil = t;
     s->bld = b;
-    lo = W->ceil[t].lo;
+    lo = t ? W->ceil[t].lo : Y_MIN;
     hi = W->bld[b].hi;
     gap = 0;
+    if (!t && !b) gap = gap_for_corridor(lo, hi, 8);        // freier Himmel: Abschnitt ohne Hindernis, 8 Spalten Platz
   } else {
     if (gen_end < intro_end && W->kind_ceil[k] && !W->kind_ceil[0]) k = 0;   // Anfang: einfacher Abschnitt
     s->bld = W->kind_bld[k];
@@ -457,7 +488,11 @@ static void new_game(void) {
   ring_head = 0;
   gen_end = 18;
   prev_lo = Y_MIN;
-  chain_t = chain_b = 1;
+  chain_mode[0] = chain_mode[1] = 0;
+  boss_state = 0;
+  boss_n = 0;
+  chain_left[0] = 10;                                       // Start: gut 4 Sekunden freier Himmel, der Boden beginnt später
+  chain_left[1] = 15;
   prev_hi = 137;
   sp_done = 0;
   sp_follow = 0;
@@ -515,10 +550,18 @@ static void new_game(void) {
 
 static void update_scroll_and_wind(void) {
   wind_timer++;
+  if (boss_state) {                                            // Windstille, solange das Monster da ist
+    wind_tgt = 4;
+    if (wind_cur > 4) wind_cur -= (wind_cur > 8) ? 4 : 1;
+    wind_timer = 0;
+  }
   if (wind_timer >= 480 && state != ST_WIN) {
     wind_timer = 0;
     {
       unsigned char nt = W->wind[rand8() & 3];
+      if (W->chain) {                                        // Sturm: der Wind wird nur stärker (nach Strecke in vier Stufen)
+        nt = W->wind[dcol / (level_len / 4 + 1) & 3];
+      }
       if (nt != wind_tgt && state == ST_PLAY) {           // dem Spieler zeigen, dass der Wind sich ändert
         wind_up = nt > wind_tgt;
         wind_msg = 100;
@@ -574,6 +617,7 @@ static void update_rope_and_barrels(unsigned int keys) {
   unsigned char i, step = carrying ? 2 : 3;
   int ypx = y32 >> 5, bx, hy1;
   Barrel *b;
+  if (W->nofuel) keys &= ~PORT_A_KEY_2;                 // ohne Treibstoff gibt es nichts zu angeln: kein Haken
   if (rope_lock) {
     rope_lock--;
     keys &= ~PORT_A_KEY_2;
@@ -758,6 +802,49 @@ static void update_cannons(void) {
   }
 }
 
+// Sturm-Monster: ein Echsenkopf steigt langsam aus der unteren Wolkenebene, es herrscht kurz Windstille, dann spuckt er Blitze.
+#define BOSS_CLIP 144          // die graue Ebene beginnt hier: der Kopf ist erst sichtbar, wenn er sie durchbricht
+static unsigned char sky_clear(void) {                         // keine Wolkendecke im Bild oder davor (ab der Ballonspalte nach rechts)?
+  const Seg *sp = ring;
+  unsigned char i;
+  for (i = 0; i < RING; i++, sp++)
+    if (sp->w && sp->ceil && seg_left[i] + sp->w * 8 > 0) return 0;
+  return 1;
+}
+
+static void update_boss(void) {
+  if (!W->boss) return;
+  if (!boss_state) {
+    if (state == ST_PLAY && boss_n < 2 && gen_end < 0xFFF0 && sky_clear() && dcol >= (level_len / 100) * (boss_n ? 82 : 52)) {
+      boss_state = 1;
+      boss_x = 256;
+      boss_y = BOSS_CLIP;
+      boss_t = 0;
+    }
+    return;
+  }
+  if (boss_state == 1) {                                      // von rechts heranschieben (versteckt), dann steigen
+    if (boss_x > 160) boss_x -= 3;
+    else if (boss_y > 112) boss_y--;
+    else {
+      boss_state = 2;
+      boss_t = 0;
+    }
+  } else if (boss_state == 2) {                               // brüllen und drei Blitze spucken
+    boss_t++;
+    if (boss_t == 30 || boss_t == 70 || boss_t == 110) fire_ball(boss_x + 14, boss_y + 14, 4);
+    if (boss_t >= 150) boss_state = 3;
+  } else {                                                    // wieder abtauchen
+    boss_y++;
+    if (boss_y >= BOSS_CLIP - 6) {
+      boss_state = 0;
+      boss_n++;
+      wind_timer = 0;
+      wind_tgt = W->wind[(dcol / (level_len / 4 + 1)) & 3];
+    }
+  }
+}
+
 // Steht gerade ein Hindernis mit dieser Animation (1-basiert) im Bild?
 static unsigned int anim_seg;           // Anfangsspalte des gerade sichtbaren Hindernisses mit dieser Animation (von anim_visible)
 
@@ -893,6 +980,7 @@ static unsigned char crashed(void) {
   for (i = 0; i < MAX_BALLS; i++)
     if (balls[i].on && balloon_hits((balls[i].x >> 6) + 1, (balls[i].y >> 6) + 1, (balls[i].x >> 6) + 7, (balls[i].y >> 6) + 7))
       return 1;
+  if (boss_state && boss_x <= 210 && balloon_hits(boss_x + 8, boss_y + 2, boss_x + 44, boss_y + 30)) return 1;   // Kopf des Sturm-Monsters
   for (i = 0; i < MAX_BIRDS; i++)                              // Vogel: nur der Körper zählt, nicht die Flügelspitzen
     if (birds[i].on && W->flyer_w &&
         balloon_hits(birds[i].x + W->flyer_hx0, birds[i].y + W->flyer_hy0, birds[i].x + W->flyer_hx1, birds[i].y + W->flyer_hy1))
@@ -1007,7 +1095,8 @@ static void draw_cannons(void) {
   const Bld *b;
   for (i = 0; i < MAX_BALLS; i++)
     if (balls[i].on) {
-      if (balls[i].kind == 1 || balls[i].kind == 3) spr(balls[i].x >> 6, balls[i].y >> 6, FIREBALL_A + ((frame >> 2) & 1));
+      if (balls[i].kind == 4) spr(balls[i].x >> 6, balls[i].y >> 6, (frame & 4) ? SPARK_Y_BIG : SPARK_W_BIG);
+      else if (balls[i].kind == 1 || balls[i].kind == 3) spr(balls[i].x >> 6, balls[i].y >> 6, FIREBALL_A + ((frame >> 2) & 1));
       else if (balls[i].kind == 2) spr(balls[i].x >> 6, balls[i].y >> 6, BOULDER);
       else spr(balls[i].x >> 6, balls[i].y >> 6, CANNONBALL);
     }
@@ -1114,6 +1203,18 @@ static void draw_lives(void) {                         // einzeln statt Schleife
   if (lives > 2) SMS_addSprite(26, 21, LIFE);
 }
 
+static void draw_boss(void) {
+  unsigned char dx, dy, tile;
+  int y;
+  if (!boss_state || boss_x > 248) return;
+  tile = W->boss + (boss_state == 2 && boss_t >= 14 && boss_t < 140 ? 30 : 0);
+  for (dy = 0; dy < 5; dy++) {
+    y = boss_y + dy * 8;
+    if (y + 8 > BOSS_CLIP) break;                              // der Rest steckt noch in der Wolkenebene
+    for (dx = 0; dx < 6; dx++) spr(boss_x + dx * 8, y, tile + dy * 6 + dx);
+  }
+}
+
 static void draw_birds(void) {
   unsigned char i, dx, dy, tile, tile_row, fw, fh;
   int x;
@@ -1170,10 +1271,10 @@ static void draw_sparks(void) {
 }
 
 static void draw_rain(void) {                        // Regen im Vordergrund: Striche fallen schräg, zuletzt gezeichnet (bei Überlast fallen sie zuerst weg)
-  unsigned char k, ry;
-  for (k = 0; k < 10; k++) {
-    ry = (unsigned char)(((unsigned int)frame * 5 + k * 41) % 176);
-    spr((unsigned char)(k * 53 + 20 - (ry >> 1)), ry + 8, RAIN);
+  unsigned char k, ry, f = (unsigned char)frame;       // nur Byte-Rechnung (Modulo auf 16 Bit kostet auf dem Z80 viel Zeit)
+  for (k = 0; k < 12; k++) {
+    ry = (unsigned char)(f * 5 + k * 21);
+    if (ry < 176) spr((unsigned char)(k * 53 + 20 - (ry >> 1)), ry + 8, RAIN);
   }
 }
 
@@ -1218,6 +1319,7 @@ static void draw_sprites(void) {
   }
   if (state == ST_WIN) draw_sparks();
   draw_birds();
+  draw_boss();
   draw_barrels();
   draw_bolts();
   draw_cannons();
@@ -1465,7 +1567,7 @@ void main(void) {
       { update_scroll_and_wind(); }
       calc_seg_left();
       { update_balloon(keys); update_rope_and_barrels(keys); }
-      { update_birds(); update_lightning(); update_cannons(); }
+      { update_birds(); update_lightning(); update_cannons(); update_boss(); }
       if (cp_idx < 2 && dcol >= cp_trigger[cp_idx]) {   // Checkpoint erreicht: hier geht es nach einem Absturz mit vollem Tank weiter
         cp_idx++;                                       // kein Auftanken: das gibt es erst beim Neustart ab hier
         saved_bonus = bonus;
