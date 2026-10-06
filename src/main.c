@@ -1346,6 +1346,7 @@ static void draw_sprites(void) {
 static unsigned char title_timer;
 static unsigned int idle_timer;                 // Frames ohne Tastendruck im Titel; danach startet die Vorführung
 static unsigned int demo_timer;
+#define START_KEYS (PORT_A_KEY_1 | PORT_A_KEY_UP)   // Start/Weiter: Knopf 1 oder Hoch (Hoch ist auch der Brenner, die Anleitung nennt beides)
 #define IDLE_FRAMES 600                          // 10 s bis zur Vorführung
 #define DEMO_FRAMES 1500                         // 25 s je Welt
 static unsigned char start_sel = START_WORLD;   // auf dem Titelbild mit links/rechts wählbar (zum Testen)
@@ -1520,10 +1521,10 @@ void main(void) {
 #endif
 
     if (demo) {
-      if ((pressed & (PORT_A_KEY_1 | PORT_A_KEY_2)) || demo_timer >= DEMO_FRAMES || state != ST_PLAY) {
-        demo = 0;                                  // Taste oder Ende: zurück zum Titel
+      if ((pressed & (PORT_A_KEY_1 | PORT_A_KEY_2 | PORT_A_KEY_UP)) || demo_timer >= DEMO_FRAMES || state != ST_PLAY) {
+        demo = 0;                                  // Taste oder Ende: zurück zum Titel; Knopf 1 / Hoch startet gleich das Spiel (sonst ginge der Tastendruck verloren)
         show_title();
-        pressed = 0;
+        pressed &= (PORT_A_KEY_1 | PORT_A_KEY_UP);
       } else {
         { keys = autopilot(0); }
         fuel = FUEL_MAX;
@@ -1553,7 +1554,7 @@ void main(void) {
       if ((pressed & PORT_A_KEY_RIGHT) && start_sel + 1 < NUM_WORLDS) { start_sel++; sel_dirty = 1; }
       if ((pressed & PORT_A_KEY_LEFT) && start_sel > 0) { start_sel--; sel_dirty = 1; }
 #endif
-      if (pressed & PORT_A_KEY_1) {
+      if (pressed & START_KEYS) {
         lives = START_LIVES;
         select_world(start_sel);
         init_game_vram();
@@ -1620,7 +1621,7 @@ void main(void) {
       update_sparks();
       if ((y32 >> 5) < 70) y32 += 16;                 // Ballon sanft auf Höhe 70 schweben lassen
       else if ((y32 >> 5) > 70) y32 -= 16;
-      if (win_timer >= 120 && (pressed & PORT_A_KEY_1)) {
+      if (win_timer >= 120 && ((pressed | keys) & START_KEYS)) {      // auch gehaltener Knopf zählt: wer den Brenner beim Zieleinlauf noch hält, löst sonst keine neue Flanke aus
         if (world_idx + 1 < NUM_WORLDS) {               // weiter in die nächste Welt
           select_world(NEXT_WORLD(world_idx));
           init_game_vram();
@@ -1636,7 +1637,7 @@ void main(void) {
         if (lives) draw_panel(11, 11, 20, 13);
         else draw_panel(10, 4, 22, 16);
       }
-      if (dead_timer >= 30 && (pressed & PORT_A_KEY_1)) {
+      if (dead_timer >= 30 && (pressed & START_KEYS)) {
         if (!lives) {                                   // Continue: wieder drei Leben, Level von vorn
           lives = START_LIVES;
           cp_idx = 0;
