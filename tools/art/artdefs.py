@@ -204,7 +204,7 @@ SPRITES = [
     ("bird_down", BIRD_DOWN),
     ("barrel", BARREL),
     ("rope", ROPE),
-    ("rain", ["......a.", ".....a..", ".....a..", "....a...", "....a...", "...a....", "...a....", "........"]),
+    ("rain", ["......e.", ".....e..", ".....e..", "....e...", "....e...", "...e....", "...e....", "........"]),
     ("hook", HOOK),
     ("fuel_bar", FUEL_BAR),
     ("fuel_bar_red", FUEL_BAR_RED),
