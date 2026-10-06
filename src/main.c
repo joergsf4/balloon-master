@@ -429,8 +429,11 @@ static unsigned char next_top, next_main, next_street;
 
 #define SET_LINE_COUNTER(v) do { SMS_VDPControlPort = (v); SMS_VDPControlPort = 0x8A; } while (0)
 
+static volatile unsigned int edge_keys;   // seit dem letzten Durchlauf neu gedrückte Tasten (SMSlib fragt die Tasten in jedem Bild ab, der Durchlauf läuft nur alle 2 Bilder)
+
 static void frame_handler(void) {          // Beginn der Austastlücke: Bänder neu starten
   vb_count++;
+  edge_keys |= SMS_getKeysPressed();             // Flanke dieses Bildes merken, sonst ginge jeder zweite Tastendruck verloren
   sc_top = next_top;
   sc_main = next_main;
   sc_street = next_street;
@@ -1511,7 +1514,10 @@ void main(void) {
 
   for (;;) {
     keys = SMS_getKeysStatus();
-    pressed = SMS_getKeysPressed();
+    __critical {
+      pressed = edge_keys;
+      edge_keys = 0;
+    }
     new_col = 0;
 #ifdef AUTOPLAY                                       // nur zum Testen: Titel überspringen und selbst fliegen
     if (state == ST_TITLE && title_timer > 90) pressed |= PORT_A_KEY_1;
