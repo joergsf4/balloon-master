@@ -61,7 +61,7 @@ def london_world(maps):
     out += "  cloud_map,\n"
     out += "  { { 0, 0, 0, 0, 137, 0, 0, 0, 0, 0 },\n    %s,\n    %s,\n    %s,\n    { 0, 0, 0, 0, 137, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 137, 0, 0, 0, 0, 0 }, { 0, 0, 0, 0, 137, 0, 0, 0, 0, 0 },\n    %s },\n" % tuple(b(n) for n in names)
     out += "  { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },\n    { storm_cloud_map, prof_storm_cloud, STORM_CLOUD_W, STORM_CLOUD_H, 2, %d, 20, %d, 0, 0 },\n" % (max(cp) - 3, max(cp))
-    out += "    { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },\n"
+    out += "    " + ",\n    ".join(["{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }"] * 6) + " },\n"
     out += "  { 1, 2, 3, 0, 1, 2, 3, 1 }, { 0, 0, 0, 1, 1, 1, 0, 1 },\n"
     out += "  0x39, 0x3E, 1,\n"
     out += "  1, 3, 24, 32,\n"
@@ -70,7 +70,7 @@ def london_world(maps):
     out += "  BIRD_UP, BIRD_UP_W, BIRD_UP_H, 3, 6, 13, 12, 8,\n"
     out += "  0,\n"
     out += "  { 0, 0 }, { 0, 0 }, { 0, 0 },\n"
-    out += "  { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },\n  0\n};\n"
+    out += "  { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } },\n  0,\n  0,\n  0\n};\n"
     return out
 
 
@@ -166,7 +166,7 @@ def emit_world(spec, bg_base, shared):
             prof2s[key] = (prof2, len(anims))              # Animationsnummer = Position in der Liste (1-basiert)
         floors[key] = (f, idx, tw, th, prof, f.get("hi", hi))
     ceils = {}                                               # hängende Hindernisse
-    for key in ("ceil1", "ceil2"):
+    for key in ["ceil%d" % n_ for n_ in range(1, 8)]:
         c = spec.get(key)
         if not c:
             continue
@@ -239,7 +239,7 @@ def emit_world(spec, bg_base, shared):
     c += f"  {ident}_far_map,\n"
     c += "  { { 0, 0, 0, 0, 137, 0, 0, 0, 0, 0 },\n    %s },\n" % ",\n    ".join(
         [bld("floor%d" % (i + 1)) for i in range(6)] + [bld("finish")])
-    c += "  { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },\n    %s,\n    %s },\n" % (cl("ceil1"), cl("ceil2"))
+    c += "  { { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },\n    %s },\n" % ",\n    ".join(cl("ceil%d" % n_) for n_ in range(1, 8))
     c += "  { %s }, { %s },\n" % (", ".join(map(str, spec["kind_bld"])), ", ".join(map(str, spec["kind_ceil"])))
     def colbyte(v):
         return v if isinstance(v, int) else sms_byte(COLORS[v])
@@ -260,7 +260,7 @@ def emit_world(spec, bg_base, shared):
             ans.append("{ %d, %d, %s_anim%d_b }" % (cnt_, first_, ident, n_))
         else:
             ans.append("{ 0, 0, 0 }")
-    c += "  { %s },\n  %d\n};\n" % (", ".join(ans), spec.get("align", 0))
+    c += "  { %s },\n  %d,\n  %d,\n  %d\n};\n" % (", ".join(ans), spec.get("align", 0), spec.get("nofuel", 0), spec.get("chain", 0))
     open(os.path.join(ROOT, "src", f"bank{spec['bank']}.c"), "w").write(c)
     open(os.path.join(ROOT, "src", f"bank{spec['bank']}.h"), "w").write(
         f"// GENERIERT von tools/gen_assets.py - nicht von Hand ändern.\n#ifndef BANK{spec['bank']}_H\n#define BANK{spec['bank']}_H\n\n"

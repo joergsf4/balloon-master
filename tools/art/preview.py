@@ -17,7 +17,7 @@ def main(mod):
     def col(v):
         return rgb8(COLORS[v])
     floors = [f["rows"]() for f in spec["floors"]] + ([spec["finish"]["rows"]()] if spec.get("finish") else [])
-    ceils = [spec[k]["rows"]() for k in ("ceil1", "ceil2") if spec.get(k)]
+    ceils = [spec["ceil%d" % n]["rows"]() for n in range(1, 8) if spec.get("ceil%d" % n)]
     W = sum(len(f[0]) for f in floors) + 10 * len(floors) + 20
     W = max(W, sum(len(c[0]) for c in ceils) + 10 * len(ceils) + 20)
     img = [[col(bg(y)) for _ in range(W)] for y in range(168)]

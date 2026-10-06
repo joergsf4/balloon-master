@@ -140,11 +140,17 @@ static void spawn_barrel(Seg *s) {
   Barrel *b = &barrels[barrel_head];
   barrel_head = (barrel_head + 1) & (MAX_BARRELS - 1);
   b->on = 1;
+  if (W->chain) {                            // Kettenwelt: das Fass liegt auf der Bodenwolke des Abschnitts
+    b->col = s->start + 1 + (rand8() & 3);
+    b->y = (unsigned char)(s->hi + 14);
+    return;
+  }
   b->col = s->start - 4 + (rand8() & 1);     // in der Lücke vor dem Abschnitt, auf dem Gehweg
   b->y = (unsigned char)(GROUND_Y - 16);   // Fass (16 px hoch) steht auf dem Gehweg
 }
 
 static unsigned char prev_lo, prev_hi;   // Korridor des vorherigen Abschnitts
+static unsigned char chain_t, chain_b;   // Kettenwelt: zuletzt gewählte Decken- und Bodenmodule
 static unsigned char sp_done, last_special, sp_follow;   // Höhepunkte (z. B. Monster) bereits erschienen / letzter Abschnitt war einer
 
 // Bilder, die der Ballon aus der Ruhe braucht, um px Pixel zu sinken (down) oder zu steigen.
@@ -217,6 +223,28 @@ static void gen_segment(void) {
     hi = W->bld[B_FINISH].hi;
     gap = gap_for_corridor(lo, hi, 14);
     if (gap < 14) gap = 14;
+  } else if (W->chain) {                                     // Wolkenkanal: Decke und Boden zufällig, lückenlos aneinander
+    unsigned char t = chain_t, b = chain_b, tr, min_c;
+    min_c = gen_end < intro_end ? 70 : (gen_end < mid_start ? 55 : 47);     // Kanalbreite (px Spielraum): am Anfang weit, am Ende eng
+    for (tr = 0; tr < 12; tr++) {
+      unsigned char tt = 1 + lvl_rand8() % W->chain, bb = 1 + lvl_rand8() % W->chain;
+      if (W->bld[bb].hi >= W->ceil[tt].lo + min_c && tr < 11) {
+        lo = W->ceil[tt].lo;
+        hi = W->bld[bb].hi;
+        if (gap_for_corridor(lo, hi, 0) == 0) {
+          t = tt;
+          b = bb;
+          break;
+        }
+      }
+    }
+    chain_t = t;
+    chain_b = b;
+    s->ceil = t;
+    s->bld = b;
+    lo = W->ceil[t].lo;
+    hi = W->bld[b].hi;
+    gap = 0;
   } else {
     if (gen_end < intro_end && W->kind_ceil[k] && !W->kind_ceil[0]) k = 0;   // Anfang: einfacher Abschnitt
     s->bld = W->kind_bld[k];
@@ -266,7 +294,8 @@ static void gen_segment(void) {
     gen_end = 0xFFF0;                                         // danach entsteht nichts mehr
   } else {
     ++since_barrel;
-    if (since_barrel >= 4 || !(rb & 7) || (fuel < 300 && since_barrel >= 2 && !barrel_ahead())) {
+    if (W->nofuel) {
+    } else if (since_barrel >= 4 || !(rb & 7) || (fuel < 300 && since_barrel >= 2 && !barrel_ahead())) {
       since_barrel = 0;                                       // bei knappem Tank kommt sicher bald ein Fass
       spawn_barrel(s);
     }
@@ -428,6 +457,7 @@ static void new_game(void) {
   ring_head = 0;
   gen_end = 18;
   prev_lo = Y_MIN;
+  chain_t = chain_b = 1;
   prev_hi = 137;
   sp_done = 0;
   sp_follow = 0;
@@ -519,10 +549,11 @@ static void update_scroll_and_wind(void) {
 static void update_balloon(unsigned int keys) {
   burner = (keys & (PORT_A_KEY_1 | PORT_A_KEY_UP)) != 0;
   if (burner) {
-    if (fuel) fuel--;
+    if (W->nofuel) {}
+    else if (fuel) fuel--;
     else burner = 0;                  // Tank leer
   }
-  if (fuel && fuel < 150 && !(frame & 63)) snd_sfx(SFX_LOWFUEL);   // Warnton bei fast leerem Tank
+  if (!W->nofuel && fuel && fuel < 150 && !(frame & 63)) snd_sfx(SFX_LOWFUEL);   // Warnton bei fast leerem Tank
   if (burner) vy -= W->up_acc;
   else vy += W->down_acc;
   if (vy < -(int)W->max_up) vy = -(int)W->max_up;
@@ -658,7 +689,7 @@ static void update_lightning(void) {
   for (k = 0; k < nact; k++) {
     i = act[k];
     s = &ring[i];
-    if (!s->w || !s->ceil || s->bld || !s->cp->bolt_y) continue;
+    if (!s->w || !s->ceil || (s->bld && !W->chain) || !s->cp->bolt_y) continue;
     left = seg_left[i];
     if (left < -56 || left > 255) continue;
     t = cloud_phase(s);
@@ -892,7 +923,7 @@ static unsigned char crashed(void) {
         if (balloon_hits(x0, 0, x0 + 8, cl->prof[c])) return 1;
       }
       t = cloud_phase(s);
-      if (cl->bolt_y && !s->bld && t >= 88 && t < 100 &&
+      if (cl->bolt_y && (!s->bld || W->chain) && t >= 88 && t < 100 &&
           balloon_hits(left + cl->bolt_x + 5, cl->bolt_y, left + cl->bolt_x + 12, cl->bolt_y + 24))
         return 1;                                             // Blitz bzw. Strahl trifft den Ballon
     }
@@ -950,7 +981,7 @@ static void draw_bolts(void) {
   for (k = 0; k < nact; k++) {
     i = act[k];
     sp = &ring[i];
-    if (!sp->w || !sp->ceil || sp->bld) continue;   // Blitz nur, wenn darunter frei ist
+    if (!sp->w || !sp->ceil || (sp->bld && !W->chain)) continue;   // Blitz nur, wenn darunter frei ist (Kettenwelt: immer)
     if (!sp->cp->bolt_y) continue;
     x = seg_left[i] + sp->cp->bolt_x;
     y0 = sp->cp->bolt_y;
@@ -1138,6 +1169,14 @@ static void draw_sparks(void) {
   }
 }
 
+static void draw_rain(void) {                        // Regen im Vordergrund: Striche fallen schräg, zuletzt gezeichnet (bei Überlast fallen sie zuerst weg)
+  unsigned char k, ry;
+  for (k = 0; k < 10; k++) {
+    ry = (unsigned char)(((unsigned int)frame * 5 + k * 41) % 176);
+    spr((unsigned char)(k * 53 + 20 - (ry >> 1)), ry + 8, RAIN);
+  }
+}
+
 static void draw_sprites(void) {
   unsigned char y = (unsigned char)(y32 >> 5);
   SMS_initSprites();
@@ -1184,7 +1223,7 @@ static void draw_sprites(void) {
   draw_cannons();
   if (state == ST_PLAY) draw_rope(y);
   number(8, 2, dcol + bonus);
-  draw_fuel();
+  if (!W->nofuel) draw_fuel();
   draw_lives();
   draw_wind();
   if (wind_msg && state == ST_PLAY) {
@@ -1192,6 +1231,7 @@ static void draw_sprites(void) {
     else text(96, 60, "WIND DOWN");
   }
   if (demo && (frame & 32)) text(112, 40, "DEMO");
+  if (W->chain) draw_rain();
 #ifdef LOOPMETER
   SMS_addSprite(8, 60, SPR_FONT_START + ('O' - 'A'));    // Bilder je Durchlauf x100 (letzte 512 Durchläufe): 100 = 60 Durchläufe/s, 200 = 30
   SMS_addSprite(16, 60, SPR_FONT_START + 26 + lm_dig[0]);

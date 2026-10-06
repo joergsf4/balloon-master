@@ -39,7 +39,7 @@ typedef struct {
   unsigned int ground[3][4];     // Tile-Zeilen 21..23, je 4 Kacheln im Wechsel (x & 3)
   const unsigned int *far_cloud; // 6 x 2 Kacheln, langsames Band oben
   Bld bld[8];                    // 0 = nichts (nur Decke), 1..6 Hindernisse, 7 = Ziel
-  Ceil ceil[3];                  // 0 = keine Decke, 1..2 hängende Hindernisse
+  Ceil ceil[8];                  // 0 = keine Decke, 1..7 hängende Hindernisse
   unsigned char kind_bld[8];     // Abschnittsarten (zufällig gewählt): Bodenhindernis
   unsigned char kind_ceil[8];    //                                    hängendes Hindernis
   unsigned char sky;             // Palettenfarbe des Himmels (SMS-Farbbyte)
@@ -59,6 +59,8 @@ typedef struct {
   unsigned char sp_ceil[2];      // dazu hängendes Hindernis (0 = keins)
   Anim anim[3];
   unsigned char align;           // Hindernisse beginnen auf einem Vielfachen dieser Spaltenzahl (Hintergrund wiederholt sich so oft), 0 = egal
+  unsigned char nofuel;          // 1 = kein Treibstoff (unbegrenzt brennen, keine Fässer, keine Anzeige)
+  unsigned char chain;           // Kettenwelt (Gewitter): Anzahl der Boden- und Deckenmodule; sie werden lückenlos zum Wolkenkanal gereiht, 0 = normal
 } World;
 
 #endif
