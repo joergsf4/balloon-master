@@ -42,7 +42,7 @@ tools/shot.sh out/rom.sms 3 8    # eigene Screenshots (Mednafen-Aufnahme + ffmpe
 - Drei Leben (kleine Ballons unter dem Tank). Ein Absturz kostet ein Leben, es geht ab dem letzten Checkpoint mit vollem Tank weiter (Taste 1). Sind alle Leben weg: „GAME OVER“ mit Continue-Countdown von 9 bis 0 (Taste 1 = Continue, unendlich oft: wieder drei Leben, der Level beginnt von vorn; bei 0 geht es zurück zum Titel). Texte stehen auf einer dunklen Fläche. Übrige Leben bleiben beim Wechsel in die nächste Welt erhalten.
 - Checkpoints bei einem und zwei Dritteln der Strecke („CHECK POINT“, kein Auftanken). Nach einem Absturz geht es dort mit vollem Tank weiter.
 - Berührung von Gebäude, Gewitterwolke oder Boden = Absturz. Die Zahl oben links ist die Strecke.
-- Der Wind (Scrolltempo) wechselt alle paar Sekunden von allein.
+- Der Wind (Scrolltempo) wechselt alle paar Sekunden von allein. Ein kleiner Windmesser („W“ mit Balken unter den Leben) zeigt die Stärke, bei einer Änderung blinkt „WIND UP“ bzw. „WIND DOWN“. Die Musik läuft unabhängig davon im festen Takt.
 
 ## Struktur
 

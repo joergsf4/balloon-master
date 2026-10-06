@@ -53,6 +53,7 @@ static unsigned char anim_state[3];     // welches der zwei Bilder gerade im VRA
 #endif
 #define START_LIVES 3
 static unsigned char lives;               // verbleibende Leben (Anzeige: kleine Ballons unter dem Tank)
+static unsigned char wind_msg, wind_up;   // Meldung "WIND UP/DOWN" (Restdauer) und Richtung der Änderung
 static unsigned char cp_idx, cp_msg;     // erreichte Checkpoints (0..2) / Anzeigedauer der Meldung
 static unsigned int cp_trigger[2];       // Spalten, ab denen ein Checkpoint gilt: 1/3 und 2/3 der Strecke
 static unsigned int saved_bonus;         // Bonuspunkte beim letzten Checkpoint
@@ -319,7 +320,10 @@ static volatile unsigned char sc_top, sc_main, sc_street;
 static volatile unsigned char band;
 static unsigned char next_top, next_main, next_street;
 
+static volatile unsigned char vb_count;   // Bildinterrupts seit dem Start (die Musik holt damit verpasste Bilder nach)
+
 static void frame_handler(void) {          // Beginn der Austastlücke: Bänder neu starten
+  vb_count++;
   sc_top = next_top;
   sc_main = next_main;
   sc_street = next_street;
@@ -425,7 +429,14 @@ static void update_scroll_and_wind(void) {
   wind_timer++;
   if (wind_timer >= 480 && state != ST_WIN) {
     wind_timer = 0;
-    wind_tgt = W->wind[rand8() & 3];
+    {
+      unsigned char nt = W->wind[rand8() & 3];
+      if (nt != wind_tgt && state == ST_PLAY) {           // dem Spieler zeigen, dass der Wind sich ändert
+        wind_up = nt > wind_tgt;
+        wind_msg = 100;
+      }
+      wind_tgt = nt;
+    }
   }
   if (!(frame & 7)) {                  // Tempo weich angleichen
     if (wind_cur < wind_tgt) wind_cur++;
@@ -951,6 +962,21 @@ static void panel_step(void) {
   }
 }
 
+// Windmesser (wie der Tankbalken): Länge = Windstärke
+static void draw_wind(void) {
+  unsigned char lvl, i;
+  int c;
+  lvl = (unsigned char)((wind_cur * 3) >> 2);          // 0..24 Pixel
+  SMS_addSprite(8, 30, SPR_FONT_START + 22);           // 'W'
+  for (i = 0; i < 3; i++) {
+    c = (int)lvl - 8 * i;
+    if (c < 0) c = 0;
+    if (c > 8) c = 8;
+    SMS_addSprite(16 + 8 * i, 30, FUEL_BAR + c);
+  }
+  SMS_addSprite(40, 30, FUEL_CAP);
+}
+
 static void draw_lives(void) {                         // einzeln statt Schleife: SMS_addSprite_f rettet Schleifenregister nicht zuverlässig
   if (lives > 0) SMS_addSprite(8, 21, LIFE);
   if (lives > 1) SMS_addSprite(17, 21, LIFE);
@@ -1053,6 +1079,11 @@ static void draw_sprites(void) {
   number(8, 2, dcol + bonus);
   draw_fuel();
   draw_lives();
+  draw_wind();
+  if (wind_msg && state == ST_PLAY) {
+    if (wind_up) text(100, 60, "WIND UP");
+    else text(96, 60, "WIND DOWN");
+  }
   if (demo && (frame & 32)) text(112, 40, "DEMO");
 }
 
@@ -1289,6 +1320,7 @@ void main(void) {
         snd_sfx(SFX_CATCH);
       }
       if (cp_msg) cp_msg--;
+      if (wind_msg) wind_msg--;
 #ifdef TEST_DIE_AT                                             // nur zum Testen: einmaliger Absturz in dieser Spalte
 #ifdef TEST_DIE_REPEAT                                         // Absturz in dieser Spalte jedes Mal (Leben/Continue testen)
       if (dcol == TEST_DIE_AT) {
@@ -1417,7 +1449,14 @@ void main(void) {
       }
     }
     snd_burner(burner && state == ST_PLAY);
-    snd_update();
+    {                                                   // Musik im festen 60-Hz-Takt: dauert ein Durchlauf länger als ein Bild (starker Wind = viele neue Spalten), werden die verpassten Bilder nachgeholt
+      static unsigned char last_vb;
+      unsigned char n = vb_count - last_vb;
+      last_vb = vb_count;
+      if (n > 3) n = 3;
+      if (!n) n = 1;
+      while (n--) snd_update();
+    }
   }
 }
 

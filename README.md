@@ -39,7 +39,7 @@ The monsters are not fought, they are big obstacles to fly around. Their shots f
 - **Three lives** (little balloons below the fuel bar). After a crash you restart at the last **checkpoint** (at 1/3 and 2/3 of the level) with a full tank.
 - All lives gone: **GAME OVER** with an arcade **continue countdown** from 9 — press Button 1 to continue (three lives, the level starts again), or let it run out to return to the title screen.
 - A hooked barrel refuels you. Fuel left at the finish is a bonus.
-- Wind (scroll speed) changes by itself every few seconds.
+- Wind (scroll speed) changes by itself every few seconds. A small **wind gauge** ("W" with a bar, below the lives) shows the strength, and "WIND UP" / "WIND DOWN" flashes when it changes.
 - The levels are fixed, not random, but a fairness check makes sure every gap can be flown through with the real physics.
 - Leave the title screen alone for 10 s and an **attract mode** flies a level for you.
 
