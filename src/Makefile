@@ -6,7 +6,7 @@ OUT           = ../out
 TARGET        = $(OUT)/rom
 
 CC      = sdcc
-CFLAGS  = -mz80 --opt-code-size -I. -I$(SMSLIB_INCDIR) -I../res/generated --peep-file $(SMSLIB_INCDIR)/peep-rules.txt
+CFLAGS  = -mz80 -I. -I$(SMSLIB_INCDIR) -I../res/generated --peep-file $(SMSLIB_INCDIR)/peep-rules.txt
 CFLAGS += $(if $(LEVEL_COLS),-DLEVEL_COLS=$(LEVEL_COLS))
 CFLAGS += $(if $(AUTOPLAY),-DAUTOPLAY)
 CFLAGS += $(if $(START_WORLD),-DSTART_WORLD=$(START_WORLD))
@@ -17,6 +17,7 @@ CFLAGS += $(if $(NO_LEVEL_SELECT),-DNO_LEVEL_SELECT)
 CFLAGS += $(if $(TEST_DIE_REPEAT),-DTEST_DIE_REPEAT)
 CFLAGS += $(if $(MONSTER_TEST),-DMONSTER_TEST)
 CFLAGS += $(if $(SFX_DEMO),-DSFX_DEMO=$(SFX_DEMO))
+CFLAGS += $(if $(LOOPMETER),-DLOOPMETER)
 # ROM-Bänke ab 2: bank<N>.c (Titelbild = 2, Welten = 3, 4, ...) liegen als Segment BANK<N> bei <N>8000 (virtuelle Adresse)
 BANKNUMS := $(sort $(patsubst bank%.c,%,$(wildcard bank?.c)))
 BANKOBJS := $(foreach n,$(BANKNUMS),$(OUT)/bank$(n).rel)

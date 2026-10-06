@@ -21,7 +21,7 @@
 #define MAP_ROWS     19
 #define BAND_CLOUDS  16      // erste Bildschirmzeile des Hindernisbands
 #define BAND_STREET  168     // erste Bildschirmzeile der Straße (= GROUND_Y)
-#define LINE_STEP    8       // Zeileninterrupt alle 8 Zeilen (Zähler 7): 2. Auslösung = Zeile 16, 21. = Zeile 168
+#define LINE_STEP    16      // erste Auslösung des Zeileninterrupts bei Zeile 16 (Zähler 15), danach siehe line_handler
 #define RING         8
 #define MAX_BIRDS    2
 #define MAX_BARRELS  4
@@ -75,11 +75,17 @@ typedef struct {
   unsigned char bld;       // Bodenhindernis (Index in W->bld), 0 = keins
   unsigned char ceil;      // hängendes Hindernis (Index in W->ceil), 0 = keins
   unsigned char lo, hi;    // Korridor: erlaubte Ballonhöhe (ypx) beim Durchfliegen dieses Abschnitts
+  unsigned char ph41, ph53; // Phasenversatz für Kanonen (start*41) und Wolken/UFOs (start*53), einmal berechnet
+  const Bld *bp;           // = &W->bld[bld] und &W->ceil[ceil], einmal beim Erzeugen berechnet (spart Multiplikationen in den Schleifen)
+  const Ceil *cp;
+  unsigned char pad[3];    // Größe 16: ring[i] wird so zu einer Verschiebung statt einer Multiplikation
 } Seg;
 
 static unsigned int level_len, intro_end, mid_start, finale_start;   // Levellänge und Abschnitte (in Spalten)
 
 static Seg ring[RING];
+static int seg_left[RING];              // Bildschirm-x der linken Kante jedes Abschnitts, einmal je Bild berechnet (calc_seg_left)
+static unsigned char act[RING], nact;   // Nummern der gerade (fast) sichtbaren Abschnitte: die Schleifen laufen nur darüber statt über alle 8
 static unsigned char ring_head;
 static unsigned int gen_end;          // erste Spalte hinter dem letzten erzeugten Abschnitt
 static unsigned int rng, rng_lvl;
@@ -187,6 +193,14 @@ static unsigned char barrel_ahead(void) {
   return 0;
 }
 
+static volatile unsigned char vb_count;   // Bildinterrupts seit dem Start (die Musik holt damit verpasste Bilder nach)
+static unsigned char tail_vb;            // vb_count beim letzten Bildwechsel-Teil (Takt: 2 Bilder je Durchlauf)
+
+#ifdef LOOPMETER                            // nur zum Messen: Bilder je Durchlauf (x100), billige Anzeige in einer Zeile
+static unsigned int lm_loops, lm_frames;
+static unsigned char lm_dig[3];
+#endif
+
 static void gen_segment(void) {
   Seg *s = &ring[ring_head];
   unsigned char k = lvl_rand8() & 7;
@@ -244,6 +258,10 @@ static void gen_segment(void) {
   w = s->bld ? W->bld[s->bld].w : 0;
   if (s->ceil && W->ceil[s->ceil].w > w) w = W->ceil[s->ceil].w;
   s->w = w;
+  s->ph41 = (unsigned char)(s->start * 41);
+  s->ph53 = (unsigned char)(s->start * 53);
+  s->bp = &W->bld[s->bld];
+  s->cp = &W->ceil[s->ceil];
   if (s->bld == B_FINISH) {
     gen_end = 0xFFF0;                                         // danach entsteht nichts mehr
   } else {
@@ -264,29 +282,44 @@ static unsigned int bg_tile(unsigned char m, unsigned char r) {
 
 // Spalte c der Welt in colbuf aufbauen (Hindernisse über dem Hintergrund)
 static void prepare_column(unsigned int c) {
-  unsigned char m = c & 31, r, i, k, top, h, w;
+  unsigned char m = c & 31, r, i, k, h, w;
+  const unsigned int *p;
+  unsigned int *q;
   unsigned int t;
   Seg *s;
   while (gen_end <= c) gen_segment();
-  for (r = 0; r < MAP_ROWS; r++) colbuf[r] = bg_tile(m, r + MAP_TOP);
+  p = W->bg_band + m;                                          // Hintergrundspalte: Zeiger statt Multiplikation je Zeile
+  q = colbuf;
+  for (r = 0; r < MAP_ROWS; r++) {
+    *q++ = *p;
+    p += 32;
+  }
   for (i = 0; i < RING; i++) {
     s = &ring[i];
     if (s->w && c >= s->start && c < s->start + s->w) {
       k = (unsigned char)(c - s->start);
-      if (s->bld && k < W->bld[s->bld].w) {
-        h = W->bld[s->bld].h;
-        w = W->bld[s->bld].w;
-        top = MAP_ROWS - h;
+      if (k < s->bp->w) {                                      // Bodenhindernis (bld 0 hat Breite 0)
+        h = s->bp->h;
+        w = s->bp->w;
+        p = s->bp->map + k;
+        q = colbuf + (MAP_ROWS - h);
         for (r = 0; r < h; r++) {
-          t = W->bld[s->bld].map[r * w + k];
-          if (t) colbuf[top + r] = t;                         // Tile 0 = Himmel: Skyline dahinter bleibt sichtbar
+          t = *p;
+          if (t) *q = t;                                       // Tile 0 = Himmel: Skyline dahinter bleibt sichtbar
+          q++;
+          p += w;
         }
       }
-      if (s->ceil && k < W->ceil[s->ceil].w) {                // hängendes Hindernis
-        for (r = 0; r < W->ceil[s->ceil].h; r++) {
-          t = W->ceil[s->ceil].map[r * W->ceil[s->ceil].w + k];
-          top = W->ceil[s->ceil].top_row - MAP_TOP + r;
-          if (t && top < MAP_ROWS) colbuf[top] = t;
+      if (k < s->cp->w) {                                      // hängendes Hindernis
+        h = s->cp->h;
+        w = s->cp->w;
+        p = s->cp->map + k;
+        q = colbuf + (s->cp->top_row - MAP_TOP);
+        for (r = 0; r < h; r++) {
+          t = *p;
+          if (t && (unsigned char)(s->cp->top_row - MAP_TOP + r) < MAP_ROWS) *q = t;
+          q++;
+          p += w;
         }
       }
       break;
@@ -315,12 +348,26 @@ static unsigned char flash, flash_on;      // Himmel-Aufblitzen (Frames), aktuel
 static unsigned int best;
 static unsigned int cl16, st16;       // Scrollstand der Wolken- und Straßenband in 1/16 Pixel (0..4095)
 
+static void calc_seg_left(void) {
+  unsigned char i;
+  const Seg *sp = ring;
+  int *l = seg_left;
+  int base = -(sub >> 4);
+  nact = 0;
+  for (i = 0; i < RING; i++, sp++, l++)
+    if (sp->w) {
+      *l = (int)(sp->start - dcol) * 8 + base;
+      if (*l < 256 && *l + sp->w * 8 > -8) act[nact++] = i;   // im Bild (mit etwas Rand)
+    }
+}
+
 // Scrollwerte der drei Bänder: *_next schreibt das Spiel, der Frame-Interrupt übernimmt sie atomar
 static volatile unsigned char sc_top, sc_main, sc_street;
 static volatile unsigned char band;
 static unsigned char next_top, next_main, next_street;
 
-static volatile unsigned char vb_count;   // Bildinterrupts seit dem Start (die Musik holt damit verpasste Bilder nach)
+
+#define SET_LINE_COUNTER(v) do { SMS_VDPControlPort = (v); SMS_VDPControlPort = 0x8A; } while (0)
 
 static void frame_handler(void) {          // Beginn der Austastlücke: Bänder neu starten
   vb_count++;
@@ -329,12 +376,23 @@ static void frame_handler(void) {          // Beginn der Austastlücke: Bänder 
   sc_street = next_street;
   band = 0;
   INLINE_SMS_setBGScrollX(sc_top);
+  SET_LINE_COUNTER(15);                                     // erste Auslösung der Zeileninterrupts bei Zeile 16
 }
 
-static void line_handler(void) {           // alle 8 Zeilen; schaltet bei Zeile 16 und 168 um
+// Nur drei Zeileninterrupts je Bild statt 24 (jeder kostet viel Rechenzeit): Zähler 15 -> Auslösung bei Zeile 16 (Hindernisband),
+// dort wird der Zähler für die zweite Auslösung auf 135 gestellt: Auslösung bei Zeile 32 (nichts zu tun außer Zähler 255 setzen),
+// dann nach 136 Zeilen bei Zeile 168 (Straße). Im Bildwechsel-Interrupt wird der Zähler wieder auf 15 gestellt.
+
+static void line_handler(void) {
   band++;
-  if (band == 2) INLINE_SMS_setBGScrollX(sc_main);         // ab Zeile 16: Hindernisband
-  else if (band == 21) INLINE_SMS_setBGScrollX(sc_street); // ab Zeile 168: Straße
+  if (band == 1) {                                          // Zeile 16: Hindernisband
+    INLINE_SMS_setBGScrollX(sc_main);
+    SET_LINE_COUNTER(135);
+  } else if (band == 2) {                                   // Zeile 32: nur den Zähler für die Straße vorbereiten
+    SET_LINE_COUNTER(255);
+  } else {                                                  // Zeile 168: Straße
+    INLINE_SMS_setBGScrollX(sc_street);
+  }
 }
 
 // Beim Laden großer Datenmengen ins VRAM dürfen unsere Handler nicht dazwischenfunken: Sie schreiben ins
@@ -530,16 +588,17 @@ static void update_rope_and_barrels(unsigned int keys) {
 // Gemeinsamer Korridor aller Abschnitte, die der Vogel auf seinem Weg zum Ballon überfliegt: *lo = größte Untergrenze,
 // *hi = kleinste Obergrenze (Ballonhöhe in Pixel). Ist hi - lo klein, gibt es keine gerade Strecke durch alle.
 static void bird_window(int *lo, int *hi) {
+  const Seg *sp;
   unsigned char i;
   int left;
   *lo = 0;
   *hi = 400;
-  for (i = 0; i < RING; i++) {
-    if (!ring[i].w) continue;
-    left = (int)(ring[i].start - dcol) * 8 - (sub >> 4);
-    if (left + ring[i].w * 8 > BALLOON_X - 24 && left < BALLOON_X + 200) {
-      if (ring[i].lo > *lo) *lo = ring[i].lo;
-      if (ring[i].hi < *hi) *hi = ring[i].hi;
+  for (i = 0, sp = ring; i < RING; i++, sp++) {
+    if (!sp->w) continue;
+    left = seg_left[i];
+    if (left + sp->w * 8 > BALLOON_X - 24 && left < BALLOON_X + 200) {
+      if (sp->lo > *lo) *lo = sp->lo;
+      if (sp->hi < *hi) *hi = sp->hi;
     }
   }
 }
@@ -584,17 +643,20 @@ static void update_birds(void) {
 
 // Blitzzyklus einer Gewitterwolke (128 Bilder): 64..87 Funken als Warnung, 88..99 Blitz (gefährlich)
 static unsigned char cloud_phase(const Seg *s) {
-  return (unsigned char)(frame + (unsigned char)(s->start * 53)) & 127;
+  return (unsigned char)(frame + s->ph53) & 127;
 }
 
 static void update_lightning(void) {
-  unsigned char i, t;
+  unsigned char i, t, k;
   int left;
-  for (i = 0; i < RING; i++) {
-    if (!ring[i].w || !ring[i].ceil || ring[i].bld || !W->ceil[ring[i].ceil].bolt_y) continue;
-    left = (int)(ring[i].start - dcol) * 8 - (sub >> 4);
+  const Seg *s = ring;
+  for (k = 0; k < nact; k++) {
+    i = act[k];
+    s = &ring[i];
+    if (!s->w || !s->ceil || s->bld || !s->cp->bolt_y) continue;
+    left = seg_left[i];
     if (left < -56 || left > 255) continue;
-    t = cloud_phase(&ring[i]);
+    t = cloud_phase(s);
     if (t == 88 || t == 95) flash = 3;
     if (t == 88) snd_sfx(SFX_THUNDER);
     else if (t >= 64 && t < 88 && !(t & 7)) snd_sfx(SFX_SPARK);
@@ -605,7 +667,7 @@ static void update_lightning(void) {
 // Kanonen von Schiff und Festung. Phase 0..127 je Objekt; ab 96 steigt Rauch auf (Warnung), bei 112 fällt der Schuss.
 // Es wird nur geschossen, wenn die Mündung weit genug rechts liegt, damit genug Zeit zum Ausweichen bleibt.
 static unsigned char shooter_phase(const Seg *s) {
-  return (unsigned char)(frame + (unsigned char)(s->start * 41)) & 127;
+  return (unsigned char)(frame + s->ph41) & 127;
 }
 
 // Schuss von (mx, y0) auf die Ballonspalte: Flugzeit T und Zielhöhe ht so wählen, dass die Kugel dort ankommt. Der
@@ -630,9 +692,10 @@ static void fire_ball(int mx, int y0, unsigned char kind) {
 }
 
 static void update_cannons(void) {
-  unsigned char i;
+  unsigned char i, k;
   int mx;
   const Bld *b;
+  const Seg *s = ring;
   for (i = 0; i < MAX_BALLS; i++) {                // Wurfparabel: seitlich konstant, senkrecht mit Schwerkraft
     if (!balls[i].on) continue;
     balls[i].x -= balls[i].vx;
@@ -640,19 +703,21 @@ static void update_cannons(void) {
     balls[i].vy += BALL_G;
     if (balls[i].x < -8 * 64 || balls[i].y > 190 * 64) balls[i].on = 0;
   }
-  for (i = 0; i < RING; i++) {
-    if (!ring[i].w) continue;
-    if (ring[i].bld) {
-      b = &W->bld[ring[i].bld];
+  for (k = 0; k < nact; k++) {
+    i = act[k];
+    s = &ring[i];
+    if (!s->w) continue;
+    if (s->bld) {
+      b = s->bp;
       if (b->shot_y) {
-        mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + b->shot_x;
-        if (mx >= 200 && mx <= 248 && (shooter_phase(&ring[i]) == 112 || (b->shot_kind == 3 && shooter_phase(&ring[i]) == 122)))
+        mx = seg_left[i] + b->shot_x;
+        if (mx >= 200 && mx <= 248 && (shooter_phase(s) == 112 || (b->shot_kind == 3 && shooter_phase(s) == 122)))
           fire_ball(mx, b->shot_y - 4, b->shot_kind);
       }
     }
-    if (ring[i].ceil && W->ceil[ring[i].ceil].shot_y) {     // UFO, Hubschrauber: schießt von oben schräg nach unten
-      mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + W->ceil[ring[i].ceil].shot_x;
-      if (mx >= 190 && mx <= 248 && cloud_phase(&ring[i]) == 116) fire_ball(mx, W->ceil[ring[i].ceil].shot_y, 1);
+    if (s->ceil && s->cp->shot_y) {                // UFO, Hubschrauber: schießt von oben schräg nach unten
+      mx = seg_left[i] + s->cp->shot_x;
+      if (mx >= 190 && mx <= 248 && cloud_phase(s) == 116) fire_ball(mx, s->cp->shot_y, 1);
     }
   }
 }
@@ -661,13 +726,14 @@ static void update_cannons(void) {
 static unsigned int anim_seg;           // Anfangsspalte des gerade sichtbaren Hindernisses mit dieser Animation (von anim_visible)
 
 static unsigned char anim_visible(unsigned char id) {
+  const Seg *sp;
   unsigned char i;
   int left;
-  for (i = 0; i < RING; i++) {
-    if (!ring[i].w || !ring[i].bld || W->bld[ring[i].bld].anim_id != id) continue;
-    left = (int)(ring[i].start - dcol) * 8 - (sub >> 4);
-    if (left < 250 && left + ring[i].w * 8 > 0) {
-      anim_seg = ring[i].start;
+  for (i = 0, sp = ring; i < RING; i++, sp++) {
+    if (!sp->w || !sp->bld || sp->bp->anim_id != id) continue;
+    left = seg_left[i];
+    if (left < 250 && left + sp->w * 8 > 0) {
+      anim_seg = sp->start;
       return 1;
     }
   }
@@ -684,14 +750,17 @@ static unsigned char monster_sfx(unsigned char i) {
 }
 
 static unsigned char passed_finish(void) {
-  unsigned char i;
+  const Seg *sp;
+  unsigned char i, k;
   int l;
-  for (i = 0; i < RING; i++) {
-    if (!ring[i].w || ring[i].bld != B_FINISH) continue;
-    l = (int)(ring[i].start - dcol) * 8 - (sub >> 4);
+  for (k = 0; k < nact; k++) {
+    i = act[k];
+    sp = &ring[i];
+    if (!sp->w || sp->bld != B_FINISH) continue;
+    l = seg_left[i];
     if (W->special_finish) {
       if (l + 128 < BALLOON_X) return 1;                      // Tower Bridge: ganz durchflogen
-    } else if (l < BALLOON_X + 40 || l + ring[i].w * 8 <= 252) {
+    } else if (l < BALLOON_X + 40 || l + sp->w * 8 <= 252) {
       return 1;                                               // sonst: Ziel ist erreicht, sobald das Objekt im Bild steht (man kommt nicht hin)
     }
   }
@@ -751,6 +820,7 @@ static const unsigned char sl_y1[5] = { 6, 10, 17, 23, 30 };
 static unsigned char balloon_hits(int x0, int y0, int x1, int y1) {
   unsigned char i;
   int ypx = y32 >> 5;
+  if (x1 <= BALLOON_X || x0 >= BALLOON_X + 24 || y1 <= ypx || y0 >= ypx + 32) return 0;   // außerhalb des Ballon-Rahmens: schneller Ausstieg
   for (i = 0; i < 5; i++)
     if (BALLOON_X + sl_x0[i] < x1 && BALLOON_X + sl_x1[i] > x0 && ypx + sl_y0[i] < y1 && ypx + sl_y1[i] > y0)
       return 1;
@@ -766,18 +836,21 @@ static unsigned char tower_hit(int x) {
 
 // Hindernis über seine Oberkanten-Profile prüfen (je 8-px-Spalte ein eigener Wert)
 static unsigned char bld_hits(const Bld *b, int left) {
-  unsigned char c;
+  unsigned char c, c1;
   int x0;
-  for (c = 0; c < b->w; c++) {
+  c = left < BALLOON_X ? (unsigned char)((BALLOON_X - left) >> 3) : 0;      // nur die Spalten unter dem Ballon (höchstens 4)
+  c1 = (unsigned char)((BALLOON_X + 23 - left) >> 3);
+  if (BALLOON_X + 23 < left || c >= b->w) return 0;
+  if (c1 >= b->w) c1 = b->w - 1;
+  for (; c <= c1; c++) {
     x0 = left + c * 8;
-    if (x0 >= BALLOON_X + 24 || x0 + 8 <= BALLOON_X) continue;
     if (balloon_hits(x0, (b->anim_id && anim_state[b->anim_id - 1]) ? b->prof2[c] : b->prof[c], x0 + 8, 400)) return 1;
   }
   return 0;
 }
 
 static unsigned char crashed(void) {
-  unsigned char i, t;
+  unsigned char i, k, t;
   int left, right;
   Seg *s;
   if ((y32 >> 5) + 30 >= GROUND_Y) return 1;
@@ -788,10 +861,11 @@ static unsigned char crashed(void) {
     if (birds[i].on && W->flyer_w &&
         balloon_hits(birds[i].x + W->flyer_hx0, birds[i].y + W->flyer_hy0, birds[i].x + W->flyer_hx1, birds[i].y + W->flyer_hy1))
       return 1;
-  for (i = 0; i < RING; i++) {
+  for (k = 0; k < nact; k++) {
+    i = act[k];
     s = &ring[i];
     if (!s->w) continue;
-    left = (int)(s->start - dcol) * 8 - (sub >> 4);
+    left = seg_left[i];
     right = left + s->w * 8;
     if (left >= BALLOON_X + 24 || right <= BALLOON_X) continue;
     if (s->bld == B_FINISH && !W->special_finish) continue;     // Regenbogen, Höhlenausgang ...: nur Kulisse, keine Kollision
@@ -800,14 +874,16 @@ static unsigned char crashed(void) {
       if (balloon_hits(left + 32, 96, left + 96, 400)) return 1;
       continue;
     }
-    if (s->bld && bld_hits(&W->bld[s->bld], left)) return 1;
+    if (s->bld && bld_hits(s->bp, left)) return 1;
     if (s->ceil) {
-      const Ceil *cl = &W->ceil[s->ceil];
-      unsigned char c;
+      const Ceil *cl = s->cp;
+      unsigned char c, c1;
       int x0;
-      for (c = 0; c < cl->w; c++) {                            // hängendes Hindernis: Unterkante je Spalte
+      c = left < BALLOON_X ? (unsigned char)((BALLOON_X - left) >> 3) : 0;
+      c1 = (unsigned char)((BALLOON_X + 23 - left) >> 3);
+      if (c1 >= cl->w) c1 = cl->w - 1;
+      for (; c <= c1 && c < cl->w; c++) {                      // hängendes Hindernis: Unterkante je Spalte (nur unter dem Ballon)
         x0 = left + c * 8;
-        if (x0 >= BALLOON_X + 24 || x0 + 8 <= BALLOON_X) continue;
         if (balloon_hits(x0, 0, x0 + 8, cl->prof[c])) return 1;
       }
       t = cloud_phase(s);
@@ -841,27 +917,40 @@ static void spr(int x, int y, unsigned char tile) {
 }
 
 static void draw_barrels(void) {
-  unsigned char i, dx, dy;
+  unsigned char i;
   int x;
-  for (i = 0; i < MAX_BARRELS; i++) {
-    if (!barrels[i].on) continue;
-    x = (int)(barrels[i].col - dcol) * 8 - (sub >> 4);
-    for (dy = 0; dy < BARREL_H; dy++)
-      for (dx = 0; dx < BARREL_W; dx++)
-        spr(x + dx * 8, barrels[i].y + dy * 8, BARREL + dy * BARREL_W + dx);
+  const Barrel *br = barrels;
+  for (i = 0; i < MAX_BARRELS; i++, br++) {
+    if (!br->on) continue;
+    x = (int)(br->col - dcol) * 8 - (sub >> 4);
+    if (x < -16 || x > 255) continue;
+    if (x >= 0 && x <= 240) {                                   // voll im Bild (der Normalfall): ohne Einzelprüfung
+      SMS_addSprite(x, br->y, BARREL);
+      SMS_addSprite(x + 8, br->y, BARREL + 1);
+      SMS_addSprite(x, br->y + 8, BARREL + 2);
+      SMS_addSprite(x + 8, br->y + 8, BARREL + 3);
+    } else {
+      spr(x, br->y, BARREL);
+      spr(x + 8, br->y, BARREL + 1);
+      spr(x, br->y + 8, BARREL + 2);
+      spr(x + 8, br->y + 8, BARREL + 3);
+    }
   }
 }
 
 static void draw_bolts(void) {
-  unsigned char i, t, dx, dy, tile;
+  const Seg *sp;
+  unsigned char i, k, t, dx, dy, tile;
   int x, y0;
-  for (i = 0; i < RING; i++) {
-    if (!ring[i].w || !ring[i].ceil || ring[i].bld) continue;   // Blitz nur, wenn darunter frei ist
-    if (!W->ceil[ring[i].ceil].bolt_y) continue;
-    x = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + W->ceil[ring[i].ceil].bolt_x;
-    y0 = W->ceil[ring[i].ceil].bolt_y;
+  for (k = 0; k < nact; k++) {
+    i = act[k];
+    sp = &ring[i];
+    if (!sp->w || !sp->ceil || sp->bld) continue;   // Blitz nur, wenn darunter frei ist
+    if (!sp->cp->bolt_y) continue;
+    x = seg_left[i] + sp->cp->bolt_x;
+    y0 = sp->cp->bolt_y;
     if (x < -16 || x > 255) continue;
-    t = cloud_phase(&ring[i]);
+    t = cloud_phase(sp);
     if (t >= 88 && t < 100) {                                 // Blitz
       tile = BOLT_A;
       if (frame & 4) tile = BOLT_B;
@@ -876,7 +965,8 @@ static void draw_bolts(void) {
 }
 
 static void draw_cannons(void) {
-  unsigned char i;
+  const Seg *sp;
+  unsigned char i, k;
   int mx;
   const Bld *b;
   for (i = 0; i < MAX_BALLS; i++)
@@ -885,19 +975,23 @@ static void draw_cannons(void) {
       else if (balls[i].kind == 2) spr(balls[i].x >> 6, balls[i].y >> 6, BOULDER);
       else spr(balls[i].x >> 6, balls[i].y >> 6, CANNONBALL);
     }
-  for (i = 0; i < RING; i++) {                    // Rauch an der Mündung als Vorwarnung
-    if (!ring[i].w || !ring[i].bld) continue;
-    b = &W->bld[ring[i].bld];
+  for (k = 0; k < nact; k++) {
+    i = act[k];
+    sp = &ring[i];                    // Rauch an der Mündung als Vorwarnung
+    if (!sp->w || !sp->bld) continue;
+    b = sp->bp;
     if (!b->shot_y) continue;
-    mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + b->shot_x;
-    if (mx >= 200 && mx <= 248 && shooter_phase(&ring[i]) >= 96 && shooter_phase(&ring[i]) < 120 && (frame & 4))
+    mx = seg_left[i] + b->shot_x;
+    if (mx >= 200 && mx <= 248 && shooter_phase(sp) >= 96 && shooter_phase(sp) < 120 && (frame & 4))
       spr(mx - 8, b->shot_y - 4, CANNON_PUFF);
   }
-  for (i = 0; i < RING; i++) {                    // UFO / Hubschrauber: Funken an der Mündung als Vorwarnung
-    if (!ring[i].w || !ring[i].ceil || !W->ceil[ring[i].ceil].shot_y) continue;
-    mx = (int)(ring[i].start - dcol) * 8 - (sub >> 4) + W->ceil[ring[i].ceil].shot_x;
-    if (mx >= 190 && mx <= 248 && cloud_phase(&ring[i]) >= 100 && cloud_phase(&ring[i]) < 120 && (frame & 4))
-      spr(mx - 8, W->ceil[ring[i].ceil].shot_y - 4, BOLT_A);
+  for (k = 0; k < nact; k++) {
+    i = act[k];
+    sp = &ring[i];                    // UFO / Hubschrauber: Funken an der Mündung als Vorwarnung
+    if (!sp->w || !sp->ceil || !sp->cp->shot_y) continue;
+    mx = seg_left[i] + sp->cp->shot_x;
+    if (mx >= 190 && mx <= 248 && cloud_phase(sp) >= 100 && cloud_phase(sp) < 120 && (frame & 4))
+      spr(mx - 8, sp->cp->shot_y - 4, BOLT_A);
   }
 }
 
@@ -977,6 +1071,7 @@ static void draw_wind(void) {
   SMS_addSprite(40, 30, FUEL_CAP);
 }
 
+
 static void draw_lives(void) {                         // einzeln statt Schleife: SMS_addSprite_f rettet Schleifenregister nicht zuverlässig
   if (lives > 0) SMS_addSprite(8, 21, LIFE);
   if (lives > 1) SMS_addSprite(17, 21, LIFE);
@@ -984,18 +1079,25 @@ static void draw_lives(void) {                         // einzeln statt Schleife
 }
 
 static void draw_birds(void) {
-  unsigned char i, dx, dy, tile;
+  unsigned char i, dx, dy, tile, tile_row, fw, fh;
   int x;
+  const Bird *bd = birds;
   if (!W->flyer_w) return;
+  fw = W->flyer_w;
+  fh = W->flyer_h;
   tile = W->flyer_tile;
-  if (!(frame & 8)) tile += W->flyer_w * W->flyer_h;            // zweites Bild des Flügelschlags
-  for (i = 0; i < MAX_BIRDS; i++) {
-    if (!birds[i].on) continue;
-    for (dy = 0; dy < W->flyer_h; dy++)
-      for (dx = 0; dx < W->flyer_w; dx++) {
-        x = birds[i].x + dx * 8;
-        if (x >= 0 && x <= 248) SMS_addSprite(x, birds[i].y + dy * 8, tile + dy * W->flyer_w + dx);
+  if (!(frame & 8)) tile += fw * fh;                            // zweites Bild des Flügelschlags
+  for (i = 0; i < MAX_BIRDS; i++, bd++) {
+    if (!bd->on) continue;
+    tile_row = tile;
+    for (dy = 0; dy < fh; dy++) {
+      x = bd->x;
+      for (dx = 0; dx < fw; dx++) {
+        if ((unsigned int)x <= 248) SMS_addSprite(x, bd->y + dy * 8, tile_row);
+        x += 8;
+        tile_row++;
       }
+    }
   }
 }
 
@@ -1070,7 +1172,7 @@ static void draw_sprites(void) {
     text(108, 40, "CHECK");
     text(112, 50, "POINT");
   }
-  draw_sparks();
+  if (state == ST_WIN) draw_sparks();
   draw_birds();
   draw_barrels();
   draw_bolts();
@@ -1085,6 +1187,12 @@ static void draw_sprites(void) {
     else text(96, 60, "WIND DOWN");
   }
   if (demo && (frame & 32)) text(112, 40, "DEMO");
+#ifdef LOOPMETER
+  SMS_addSprite(8, 60, SPR_FONT_START + ('O' - 'A'));    // Bilder je Durchlauf x100 (letzte 512 Durchläufe): 100 = 60 Durchläufe/s, 200 = 30
+  SMS_addSprite(16, 60, SPR_FONT_START + 26 + lm_dig[0]);
+  SMS_addSprite(24, 60, SPR_FONT_START + 26 + lm_dig[1]);
+  SMS_addSprite(32, 60, SPR_FONT_START + 26 + lm_dig[2]);
+#endif
 }
 
 // ---------------------------------------------------------------- Start
@@ -1178,7 +1286,7 @@ static unsigned int autopilot(unsigned int keys) {
   unsigned char k;
   for (k = 0; k < RING; k++) {
     if (!ring[k].w) continue;
-    l = (int)(ring[k].start - dcol) * 8 - (sub >> 4);
+    l = seg_left[k];
     if (l < BALLOON_X + 70 && l + ring[k].w * 8 > BALLOON_X - 24) {
       if (ring[k].lo > lo_max) lo_max = ring[k].lo;
       if (ring[k].hi < hi_min) hi_min = ring[k].hi;
@@ -1237,6 +1345,8 @@ static void show_logo(void) {
   }
 }
 
+
+
 void main(void) {
   unsigned int keys, pressed;
   unsigned char i;
@@ -1259,7 +1369,7 @@ void main(void) {
     if (state == ST_TITLE && title_timer > 90) pressed |= PORT_A_KEY_1;
     if (state == ST_DEAD && dead_timer >= 40 && lives) pressed |= PORT_A_KEY_1;   // bei Game Over wartet der Test auf den Countdown
     if (state == ST_WIN && win_timer >= 130) pressed |= PORT_A_KEY_1;
-    if (state == ST_PLAY) keys = autopilot(keys);
+    if (state == ST_PLAY) { keys = autopilot(keys); }
 #endif
 
     if (demo) {
@@ -1268,7 +1378,7 @@ void main(void) {
         show_title();
         pressed = 0;
       } else {
-        keys = autopilot(0);
+        { keys = autopilot(0); }
         fuel = FUEL_MAX;
         demo_timer++;
       }
@@ -1307,12 +1417,10 @@ void main(void) {
 #ifdef MONSTER_TEST
       fuel = FUEL_MAX;
 #endif
-      update_scroll_and_wind();
-      update_balloon(keys);
-      update_rope_and_barrels(keys);
-      update_birds();
-      update_lightning();
-      update_cannons();
+      { update_scroll_and_wind(); }
+      calc_seg_left();
+      { update_balloon(keys); update_rope_and_barrels(keys); }
+      { update_birds(); update_lightning(); update_cannons(); }
       if (cp_idx < 2 && dcol >= cp_trigger[cp_idx]) {   // Checkpoint erreicht: hier geht es nach einem Absturz mit vollem Tank weiter
         cp_idx++;                                       // kein Auftanken: das gibt es erst beim Neustart ab hier
         saved_bonus = bonus;
@@ -1404,9 +1512,15 @@ void main(void) {
       next_street = (unsigned char)(0 - (st16 >> 4));
     }
 
+    if (state != ST_PLAY) calc_seg_left();                // im Spiel schon nach dem Scrollen berechnet
     draw_sprites();
     frame++;
-    SMS_waitForVBlank();
+    // Fester Takt: jeder Durchlauf dauert genau 2 Bilder (30 Durchläufe/s). Vorher schwankte er je nach Last zwischen 1 und 3 Bildern,
+    // das waren die Ruckler. Dauert die Arbeit länger als 2 Bilder, wird nicht zusätzlich gewartet.
+    do {
+      SMS_waitForVBlank();
+    } while ((unsigned char)(vb_count - tail_vb) < 2);
+    tail_vb = vb_count;
     if (pj_rows) panel_step();                          // zuerst, solange die Austastlücke ganz frei ist
     SMS_copySpritestoSAT();
     if (new_col) upload_column(dcol + 32);
@@ -1455,6 +1569,16 @@ void main(void) {
       last_vb = vb_count;
       if (n > 3) n = 3;
       if (!n) n = 1;
+#ifdef LOOPMETER
+      lm_loops++;
+      lm_frames += n;
+      if (lm_loops >= 512) {                           // alle 512 Durchläufe neu rechnen und halbieren: gleitender Wert
+        unsigned int v = (unsigned int)(((unsigned long)lm_frames * 100) / lm_loops);
+        lm_dig[0] = v / 100; lm_dig[1] = (v / 10) % 10; lm_dig[2] = v % 10;
+        lm_loops = 0;
+        lm_frames = 0;
+      }
+#endif
       while (n--) snd_update();
     }
   }
