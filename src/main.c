@@ -180,7 +180,7 @@ static unsigned char gap_for_corridor(unsigned char lo, unsigned char hi, unsign
   shift = CORR_MARGIN - overlap;
   if (shift > 120) shift = 120;
   down = ((int)lo + hi) > ((int)prev_lo + prev_hi);
-  cols = (frames_to_shift((unsigned char)shift, down) * W->wind[3] + 127) >> 7;   // bei dem stärksten Wind der Welt
+  cols = (frames_to_shift((unsigned char)shift, down) * (W->wind[3] + (W->wind[3] >> 4)) + 127) >> 7;   // bei dem stärksten Wind der Welt
   if (cols > 30) cols = 30;
   if (cols > gap) return (unsigned char)cols;
   return gap;
@@ -337,7 +337,7 @@ static unsigned char demo, demo_next;   // Vorführung läuft / nächste Welt de
 static unsigned int frame;
 static unsigned char sub;             // 1/16 Pixel innerhalb einer Spalte (0..127)
 static int y32, vy;                   // Höhe in 1/32 Pixel, Geschwindigkeit in 1/32 Pixel pro Frame
-static unsigned char wind_cur, wind_tgt;
+static unsigned char wind_cur, wind_tgt, wind_frac;
 static unsigned int wind_timer;
 static unsigned char dead_timer;
 static unsigned char cont_count, cont_frames;   // Continue-Countdown (9..0) und Bilder bis zur nächsten Sekunde
@@ -500,9 +500,14 @@ static void update_scroll_and_wind(void) {
     if (wind_cur < wind_tgt) wind_cur++;
     else if (wind_cur > wind_tgt) wind_cur--;
   }
-  sub += wind_cur;
-  cl16 = (cl16 + (wind_cur >> 2)) & 0x0FFF;                    // ferne Wolken: 1/4 Tempo
-  st16 = (st16 + wind_cur + (wind_cur >> 1)) & 0x0FFF;         // Straße: 1,5-faches Tempo
+  {                                                            // Scrolltempo = Wind + 5 % (Bruchteil wird mitgeführt, damit es auch bei kleinen Werten stimmt)
+    unsigned int acc = wind_frac + wind_cur * 13;
+    unsigned char wspd = wind_cur + (unsigned char)(acc >> 8);
+    wind_frac = (unsigned char)acc;
+    sub += wspd;
+    cl16 = (cl16 + (wspd >> 2)) & 0x0FFF;                      // ferne Wolken: 1/4 Tempo
+    st16 = (st16 + wspd + (wspd >> 1)) & 0x0FFF;               // Straße: 1,5-faches Tempo
+  }
   if (sub >= 128) {
     sub -= 128;
     dcol++;
