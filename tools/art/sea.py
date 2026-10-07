@@ -1,4 +1,4 @@
-"""Welt 2: Piratenbucht. Insel mit Palmen, Piratenschiff, Festung und Schatzinsel (Ziel), Wasser und Himmel.
+"""Welt 2: Piratenbucht. Insel mit Palmen, Piratenschiff, Piratenfestung und Schatzinsel (Ziel), Wasser und Himmel.
 
 Alle Objekte sind unten bündig auf dem Wasser (Bildschirm-y 168). '.' = durchsichtig; vor der Umwandlung in Kacheln
 wird es mit der Hintergrundfarbe dieser Bildschirmzeile gefüllt (bake), damit es zur Szene passt: oben Himmel,
@@ -154,42 +154,110 @@ def ship():
 
 
 def fort():
+    """Piratenfestung. Kachel-sparend: Holzmuster wiederholen sich alle 8 px, Details liegen auf dem 8er-Raster
+    (das Spiel legt nur exakt gleiche 8x8-Kacheln zusammen; die Welt hat nur 448 Kacheln)."""
     cv = Canvas(96, 88)
-    for x in range(0, 96):                                      # Felsen im Wasser
+
+    for x in range(0, 96):                                      # Felsen im Wasser (wie vorher)
         top = 64 + int(5 * math.sin(x / 7.0))
         for y in range(top, 82):
             edge = x < 4 or x > 91 or y > 78
             cv.put(x, y, 'S' if (y - top < 2 and not edge) else 'E')
 
-    def block(x0, y0, x1, y1):
+    def planks(x0, y0, x1, y1):
+        """Schiffsplanken: 8 px hoch, Stoss alle 8 px, jede zweite Reihe um 4 versetzt (Periode 8x16)."""
         for y in range(y0, y1):
             for x in range(x0, x1):
-                shade = x >= x1 - 3
-                brick = (y % 8 == 7) or ((x + (4 if (y // 8) % 2 else 0)) % 8 == 7)
-                cv.put(x, y, 'E' if brick else ('e' if not shade else 'E'))
+                dark = (y % 8 == 7) or ((x + 4 * ((y // 8) % 2)) % 8 == 0)
+                if x >= x1 - 3:
+                    dark = True
+                cv.put(x, y, 'B' if dark else 'b')
 
-    block(8, 34, 88, 72)                                        # Mauer
-    block(4, 14, 28, 72)                                        # linker Turm
-    block(68, 20, 92, 72)                                       # rechter Turm
-    block(36, 20, 60, 36)                                       # Bergfried
-    for x0, x1, y in ((4, 28, 10), (68, 92, 16), (36, 60, 16), (8, 88, 30)):   # Zinnen
-        for x in range(x0, x1, 6):
-            cv.rect(x, y, min(x + 4, x1), y + 4, 'e')
-    for wx in (12, 20):                                         # Fenster
-        cv.rect(wx, 24, wx + 4, 31, 'k')
-    cv.rect(74, 30, 78, 37, 'k')
-    _cannon45(cv, 12, 47, 4, 39)                                # Turmkanone, 45 Grad
-    cv.rect(44, 52, 56, 72, 'k')                                # Tor mit Gitter
-    for x in range(46, 56, 3):
-        cv.rect(x, 52, x + 1, 72, 'E')
-    for y in range(56, 72, 5):
-        cv.rect(44, y, 56, y + 1, 'E')
-    cv.rect(47, 0, 49, 20, 'B')                                 # Fahnenmast
-    cv.poly([(49, 2), (49, 12), (63, 12), (60, 7), (63, 2)], 'k')
+    def logs(x0, y0, x1, y1):
+        """Senkrechte Staemme, Periode 4; rechte 3 px dunkel."""
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                cv.put(x, y, 'B' if (x % 4 == 3 or x >= x1 - 3) else 'b')
+
+    def art(x0, y0, rows):
+        """8x8-Kachel (oder Vielfaches) auf dem Raster; '.' = nichts ueberschreiben."""
+        for dy, r in enumerate(rows):
+            for dx, ch in enumerate(r):
+                if ch != '.':
+                    cv.put(x0 + dx, y0 + dy, ch)
+
+    PLATFORM = ["bbbbbbbb"] + ["BBBBBBBB"] * 7
+    RAIL = ["bbbbbbbb", "bbbbbbbb"] + ["BB......"] * 6
+    STAKE = ["........", "........", ".bb.....", ".bb.....", "bbbB....", "bbbB....", "bbbB....", "bbbB...."]
+    WINDOW = ["kkkkkkkk", "kyyykyyk", "kyyykyyk", "kkkkkkkk", "kyyykyyk", "kyyykyyk", "kkkkkkkk", "BBBBBBBB"]
+    PORTHOLE = ["..kkkk..", ".kyyyyk.", "kyyyyyyk", "kyyyyyyk", "kyyyyyyk", "kyyyyyyk", ".kyyyyk.", "..kkkk.."]
+    GUNPORT = ["BBBBBBBB", "BkkkkkkB", "BkEEEEkB", "BkEkkEkB", "BkEkkEkB", "BkEEEEkB", "BkkkkkkB", "BBBBBBBB"]
+    ANCHOR = ["...EE...", "...EE...", ".EEEEEE.", "...EE...", "...EE...", "E..EE..E", "EE.EE.EE", ".EEEEEE."]
+    GATE_TOP = ["BBBBBBBB", "kBkkkBkk", "kBkkkBkk", "kBkkkBkk", "BBBBBBBB", "kBkkkBkk", "kBkkkBkk", "kBkkkBkk"]
+    GATE_BOT = ["kBkkkBkk", "kBkkkBkk", "kBkkkBkk", "BBBBBBBB", "kBkkkBkk", "kBkkkBkk", "kBkkkBkk", "BBBBBBBB"]
+    MAST = ["BB......"] * 8
+
+    SHINGLE = ["BbBbBbBb", "bBbBbBbB", "BbBbBbBb", "BBBBBBBB", "bBbBbBbB", "BbBbBbBb", "bBbBbBbB", "BBBBBBBB"]
+    SKULLPOLE = ["..www...", ".wwwww..", ".wkwkw..", "..www...", "...B....", "...B....", "...B....", "...B...."]
+    BARREL = [".kkkkkk.", "kbbbbbBk", "kyyyyyyk", "kbbbbbBk", "kbbbbbBk", "kyyyyyyk", "kbbbbbBk", ".kkkkkk."]
+    CHEST = ["........", "........", ".kkkkkk.", "kbbbbbBk", "kyyyyyyk", "kbbyybBk", "kbbbbbBk", "kkkkkkkk"]
+    PENNANT = ["........", "......rr", "rrrrrrrr", "rrrrrrrr", "..rrrrrr", "........", "........", "........"]
+
+    # Mauer, Tuerme (alles auf dem 8er-Raster)
+    planks(0, 24, 96, 72)
+    art(24, 16, STAKE)                                          # Pfahl neben dem linken Turm
+    art(24, 8, SKULLPOLE)                                       # mit Totenkopf (sitzt auf dem Pfahl)
+    art(64, 16, STAKE)
+    logs(0, 24, 24, 72)                                         # linker Turm: Ausguck
+    for x in range(0, 24, 8):
+        art(x, 16, PLATFORM)
+        art(x, 8, RAIL)
+    planks(72, 24, 96, 72)                                      # rechter Turm: gestrandetes Heck
+    for x in range(72, 96, 8):
+        art(x, 16, PLATFORM)
+        art(x, 8, RAIL)
+    art(80, 0, PENNANT)                                         # Wimpel am Heckmast
+    art(88, 0, MAST)
+    planks(32, 16, 64, 32)                                      # Wachhaus mit Schindeldach
+    for x in range(32, 64, 8):
+        art(x, 8, SHINGLE)
+    art(40, 16, WINDOW)
+    art(56, 16, WINDOW)
+
+    art(72, 32, WINDOW)                                         # Heckfenster
+    art(88, 32, WINDOW)
+    art(80, 48, ANCHOR)
+    art(16, 32, PORTHOLE)
+    art(24, 48, GUNPORT)                                        # Kanonenpforten
+    art(64, 48, GUNPORT)
+    art(40, 56, GATE_TOP)                                       # Tor
+    art(48, 56, GATE_TOP)
+    art(40, 64, GATE_BOT)
+    art(48, 64, GATE_BOT)
+    for x in (32, 56, 64):                                      # Rumfaesser am Fuss
+        art(x, 64, BARREL)
+    art(24, 64, CHEST)
+
+    _cannon45(cv, 12, 47, 4, 39)                                # Turmkanone, 45 Grad (Schusspunkt!)
+
+    # Totenkopf mit Knochen ueber dem Tor (16x16, auf dem Raster)
+    cv.line(42, 42, 54, 54, 'e', 2)
+    cv.line(54, 42, 42, 54, 'e', 2)
+    skull = ["..wwwwwwww..", ".wwwwwwwwww.", "wwwwwwwwwwww", "wwkkkwwkkkww", "wwkkkwwkkkww",
+             "wwwwwkkwwwww", ".wwwwwwwwww.", "..wkwkwkww..", "..wwwwwwww.."]
+    for dy, r in enumerate(skull):
+        for dx, ch in enumerate(r):
+            if ch != '.':
+                cv.put(42 + dx, 40 + dy, ch)
+
+    # Fahnenmast und Totenkopfflagge (wie vorher)
+    art(48, 0, MAST)
+    cv.poly([(50, 1), (50, 11), (64, 11), (61, 6), (64, 1)], 'k')
     for dy, row in enumerate(["wwwww", "w.w.w", "wwwww", ".w.w."]):
         for dx, ch in enumerate(row):
             if ch == 'w':
-                cv.put(52 + dx, 3 + dy, 'w')
+                cv.put(53 + dx, 2 + dy, 'w')
+
     foam(cv, 80, 0, 96, 21)
     return cv.rows()
 
